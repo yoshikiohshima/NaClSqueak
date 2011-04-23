@@ -6,9 +6,9 @@ PYTHON = python
 
 CFILES = ../src/vm/interp.c
 
-NACL_SDK_ROOT = ../../../..
+NACL_SDK_ROOT = ../../..
 
-INCLUDES	= -I../src/vm -I..  -I.
+INCLUDES	= -Isrc/vm -I. -Ivm
 LDFLAGS = -lppruntime \
           -lpthread \
           -lgoogle_nacl_platform \
@@ -24,7 +24,8 @@ all: check_variables $(OBJECTS_X86_32)
 SQCFLAGS = -Wno-long-long -pthread -Wno-pragmas
 LOCALCFILES = $(notdir $(CFILES))
 
-OBJECTS_X86_32 = $(LOCALCFILES:%.c=%_x86_32.o)
+OBJECTS_X86_32_BASE = $(LOCALCFILES:%.c=%_x86_32.o)
+OBJECTS_X86_32 = $(addprefix bld/,$(OBJECTS_X86_32_BASE))
 OBJECTS_X86_64 = $(CFILES:%.c=%_x86_64.o) $(CCFILES:%.cc=%_x86_64.o)
 OBJECTS_X86_32_DBG = $(CFILES:%.c=%_x86_32_dbg.o) $(CCFILES:%.cc=%_x86_32_dbg.o)
 OBJECTS_X86_64_DBG = $(CFILES:%.c=%_x86_64_dbg.o) $(CCFILES:%.cc=%_x86_64_dbg.o)
@@ -36,11 +37,11 @@ LOCALPLUGINNAMES = $(notdir $(PLUGINDIRS))
 PLUGINS_X86_32 = $(LOCALPLUGINNAMES:%=%_x86_32.o)
 
 echo:
-	@echo PLUGINS_X86_32 is $(PLUGINS_X86_32)
+	@echo OBJECTS_X86_32 is $(OBJECTS_X86_32)
 
 plugins: $(PLUGINS_X86_32)
 
-interp_x86_32.o: ../src/vm/interp.c
+interp_x86_32.o: src/vm/interp.c
 	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) $(DEBUG_FLAGS) -c -o $@ $<
 
 $(PLUGINS_X86_32): 
