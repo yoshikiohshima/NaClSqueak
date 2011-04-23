@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <!--
+  Copyright (c) 2010 The Native Client Authors. All rights reserved.
+  Use of this source code is governed by a BSD-style license that can be
+  found in the LICENSE file.
+  -->
+  <head>
+    <title>Squeak!</title>
+    <script type="text/javascript">
+      var squeakModule = null;
+      var paintInterval = null;
+
+      function moduleDidLoad() {
+        squeakModule = document.getElementById('squeak');
+        paintInterval = setInterval("squeakModule.paint()", 50);
+      }
+
+      function pageDidUnload() {
+      clearInterval(paintInterval);
+      }
+
+    function updateStatus(opt_message) {
+      var statusText;
+      if (opt_message)
+        statusText = opt_message;
+      var statusField = document.getElementById('status_field');
+      if (statusField) {
+        statusField.innerHTML = statusText;
+      }
+    }
+
+
+    function getSqueakStatus() {
+      var statusText;
+      try {
+        statusText = squeakModule.getStatus();
+      } catch(e) {
+        alert(e.message);
+      }
+       updateStatus(squeakModule.getStatus());
+    }
+
+    </script>
+  </head>
+    <body id="bodyId" onunload="pageDidUnload()">
+    <h1>Squeak Test</h1>
+    <p>
+      A small graphics test.
+    </p>
+    <!-- Load the published .nexe.  This includes the 'nacl' attribute which
+    shows how to load multi-architecture modules.  Each entry in the "nexes"
+    object in the .nmf manifest file is a key-value pair: the key is the
+    runtime ('x86-32', 'x86-64', etc.); the value is a URL for the desired NaCl
+    module.  To load the debug versions of your .nexes, set the 'nacl'
+    attribute to the _dbg.nmf version of the manifest file.
+
+    Note: The 'dimensions' attribute indicates that the pi_generator .nexe will
+    use the 2D drawing device in the browser.
+    -->
+    <embed name="nacl_module"
+           id="squeak"
+           width=200 height=200
+           nacl="squeak.nmf"
+           type="application/x-nacl"
+           dimensions="2"
+           onload="moduleDidLoad();" />
+    </script>
+    <br />
+  <form name="squeak_form" action="" method="get">
+    <input type="button" value="Call getStatus()" onclick="getSqueakStatus()">
+  </form>
+<h2>Status</h2>
+<div id="status_field">NO-STATUS</div>
+  </body>
+</HTML>
