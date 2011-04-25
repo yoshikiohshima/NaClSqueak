@@ -47,7 +47,9 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/utsname.h>
+#ifndef NACL
+# include <sys/utsname.h>
+#endif
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
@@ -136,6 +138,7 @@ static void initTimers(void)
 {
   /* set up the micro/millisecond clock */
   gettimeofday(&startUpTime, 0);
+#ifndef NACL
   if (useItimer)
     {
       /* set up the low-res (50th second) millisecond clock */
@@ -165,6 +168,7 @@ static void initTimers(void)
 	setitimer(ITIMER_REAL, &iv, 0);
       }
     }
+#endif
 }
 
 sqInt ioLowResMSecs(void)
@@ -211,6 +215,7 @@ sqLong ioMicroSeconds(void)
 /* implementation of ioUtcWithOffset(), defined in config.h to
 /* override default definition in src/vm/interp.h
  */
+#ifndef NACL
 sqInt sqUnixUtcWithOffset(sqLong *microSeconds, int *offset)
 {
   struct timeval timeval;
@@ -221,6 +226,7 @@ sqInt sqUnixUtcWithOffset(sqLong *microSeconds, int *offset)
   *offset= localtime(&seconds)->tm_gmtoff;
   return 0;
 }
+#endif
 
 time_t convertToSqueakTime(time_t unixTime)
 {
@@ -228,7 +234,8 @@ time_t convertToSqueakTime(time_t unixTime)
   unixTime+= localtime(&unixTime)->tm_gmtoff;
 #else
 # ifdef HAVE_TIMEZONE
-  unixTime+= ((daylight) * 60*60) - timezone;
+  unixTime+= 0;
+  /*((daylight) * 60*60) - timezone;*/
 # else
 #  error: cannot determine timezone correction
 # endif

@@ -1,7 +1,7 @@
 #define NACL 1
 #define UNIX 1
 #define ioMicroSecondClock ioMicroSeconds
-#define ioUtcWithOffset sqUnixUtcWithOffset
+/* #define ioUtcWithOffset sqUnixUtcWithOffset */
 #define OS_TYPE "unix"
 /* #undef DARWIN */
 /* #undef WORDS_BIGENDIAN */
@@ -43,7 +43,7 @@
 #define PLATFORM_SOURCE_VERSION "2378"
 /* #undef SQ_VERSION */
 #define HAVE_TZSET 1
-/* #undef HAVE_TIMEZONE */
+#define HAVE_TIMEZONE 1
 /* #undef HAVE_TM_GMTOFF */
 /* #undef IMAGE_DUMP */
 /* #undef HAVE_MMAP */
@@ -58,6 +58,7 @@
 /* #undef USE_QUARTZ_CGL */
 /* #undef HAVE_GL_GL_H */
 /* #undef HAVE_OPENGL_GL_H */
+#define AVOID_OPENGL_H 1
 /* #undef HAVE_FFI_H */
 /* #undef HAVE_FFI_FFI_H */
 /* #undef HAVE_UUID_H */
