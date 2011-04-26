@@ -8,7 +8,7 @@
 
 PYTHON = python
 
-SQCFILES = sqVirtualMachine.c sqUnixMain.c vm/sqNaClWindow.c squeak.c
+SQCFILES = sqVirtualMachine.c sqUnixMain.c vm/sqNaClWindow.c vm/sqUnixMemory.c vm/sqNamedPrims.c vm/sqUnixCharConv.c
 
 CFILES = squeak.c
 
