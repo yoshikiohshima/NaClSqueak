@@ -902,6 +902,11 @@ static void loadImplicit(struct SqModule **addr, char *evar, char *type, char *n
 }
 #endif /* NACL */
 
+#ifdef NACL
+extern struct SqModule * nacl_display_module();
+extern struct SqModule * nacl_sound_module();
+#endif
+
 static void loadModules(void)
 {
 
@@ -932,8 +937,8 @@ static void loadModules(void)
     }
 
 #else   /* NACL */
-  displayModule = naclDisplayModule;
-  soundModule = naclSoundModule;
+  displayModule = nacl_display_module();
+  soundModule = nacl_sound_module();
 #endif  /* NACL */
 
   dpy= (struct SqDisplay *)displayModule->makeInterface();
@@ -1150,6 +1155,7 @@ SqModuleDefine(vm, Module);
 
 static void usage(void)
 {
+#ifndef NACL
   struct SqModule *m= 0;
   printf("Usage: %s [<option>...] [<imageName> [<argument>...]]\n", argVec[0]);
   printf("       %s [<option>...] -- [<argument>...]\n", argVec[0]);
@@ -1177,6 +1183,7 @@ static void usage(void)
   printf("\nAvailable drivers:\n");
   for (m= modules;  m->next;  m= m->next)
     printf("  %s\n", m->name);
+#endif
   exit(1);
 }
 
@@ -1222,6 +1229,7 @@ static void parseArguments(int argc, char **argv)
 
   saveArg();	/* vm name */
 
+#ifndef NACL
   while ((argc > 0) && (**argv == '-'))	/* more options to parse */
     {
       struct SqModule *m= 0;
@@ -1242,6 +1250,7 @@ static void parseArguments(int argc, char **argv)
       while (n--)
 	saveArg();
     }
+#endif
   if (!argc)
     return;
   if (!strcmp(*argv, "--"))
@@ -1347,7 +1356,7 @@ void imgInit(void)
 # define mtfsfi(fpscr)
 #endif
 
-int main(int argc, char **argv, char **envp)
+int sqMain(int argc, char **argv, char **envp)
 {
   fldcw(0x12bf);	/* signed infinity, round to nearest, REAL8, disable intrs, disable signals */
   mtfsfi(0);		/* disable signals, IEEE mode, round to nearest */
@@ -1492,7 +1501,9 @@ sqInt sqGetFilenameFromString(char *aCharBuffer, char *aFilenameString, sqInt fi
   struct stat st;
 
   sq2uxPath(aFilenameString, filenameLength, aCharBuffer, MAXPATHLEN, 1);
-
+#ifdef NACL
+  return 0;
+#else 
   if (resolveAlias)
     for (;;)	/* aCharBuffer might refer to link or alias */
       {
@@ -1534,11 +1545,13 @@ sqInt sqGetFilenameFromString(char *aCharBuffer, char *aFilenameString, sqInt fi
       }
 
   return 0;
+#endif
 }
 
 
 sqInt ioGatherEntropy(char *buffer, sqInt bufSize)
 {
+#ifndef NACL
   int fd, count= 0;
 
   if ((fd= open("/dev/urandom", O_RDONLY)) < 0)
@@ -1555,4 +1568,7 @@ sqInt ioGatherEntropy(char *buffer, sqInt bufSize)
   close(fd);
 
   return count == bufSize;
+#else
+  return 0;
+#endif
 }

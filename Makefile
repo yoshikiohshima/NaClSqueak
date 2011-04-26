@@ -8,7 +8,9 @@
 
 PYTHON = python
 
-SQCFILES = sqVirtualMachine.c sqUnixMain.c
+SQCFILES = sqVirtualMachine.c sqUnixMain.c vm/sqNaClWindow.c squeak.c
+
+CFILES = squeak.c
 
 NACL_SDK_ROOT = ../..
 

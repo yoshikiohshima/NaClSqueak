@@ -17,21 +17,305 @@
 #include "sqUnixMain.h"
 #include "sqUnixGlobals.h"
 #include "sqUnixCharConv.h"		/* not required, but probably useful */
-#include "aio.h"			/* ditto */
+/*#include "aio.h"*/			/* ditto */
 
 #include "SqDisplay.h"
 
+#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+/* #include <sys/time.h> */
+
+#include <ppapi/c/pp_module.h>
+#include <ppapi/c/ppb.h>
+#include <ppapi/c/ppb_instance.h>
+#include <ppapi/c/ppp.h>
+#include <ppapi/c/ppp_instance.h>
+#include <ppapi/c/pp_size.h>
+#include <ppapi/c/pp_rect.h>
+#include <ppapi/c/pp_point.h>
+#include <ppapi/c/ppb_image_data.h>
+#include <ppapi/c/ppb_graphics_2d.h>
+#include <ppapi/c/ppb_graphics_2d.h>
+#include <ppapi/c/ppb_core.h>
+#include <ppapi/c/pp_input_event.h>
+#include <ppapi/c/pp_completion_callback.h>
 
 #include "sqUnixEvent.c"		/* see X11 and/or Quartz drivers for examples */
+#include "sqNaClWindow.h"
 
+char LogStatus[10000];
+char LogBuffer[1024];
 
-#define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__)
+static PP_Bool isContextValid();
+
+void
+Log(char* message)
+{
+  int slen = strlen(LogStatus);
+  int mlen = strlen(message);
+  if (slen <= mlen)
+    LogStatus[0] = '\0';
+  else if (slen + mlen >= sizeof(LogStatus))
+    memmove(LogStatus, LogStatus + mlen, slen - mlen + 1);
+  strcat(LogStatus, message);
+}
+
+char*
+NaClStatus()
+{
+  return LogStatus;
+}
+
+static const struct PPB_Graphics2D* graphics_2d_;
+static const struct PPB_ImageData* image_data_;
+static const struct PPB_Instance* instance_;
+const struct PPB_Core* core_;
+
+static PP_Resource gc = 0;
+static PP_Resource image = 0;
+pthread_mutex_t image_mutex;
+pthread_t interpret_thread;
+int32_t flush_pending;
+int32_t toQuit = 0;
+
+static struct PP_ImageDataDesc desc;
+
+static int32_t screenWidth;
+static int32_t screenHeight;
+static int32_t screenStride;
+
+static int nacl2sqButton(int button)
+{
+  if (button == PP_INPUTEVENT_MOUSEBUTTON_LEFT) {
+    return RedButtonBit;
+  } else if (button == PP_INPUTEVENT_MOUSEBUTTON_MIDDLE) {
+    return YellowButtonBit;
+  } else if (button == PP_INPUTEVENT_MOUSEBUTTON_RIGHT) {
+    return BlueButtonBit;
+  }
+  return 0;
+}
+
+static int nacl2sqModifier(uint32_t state)
+{
+  int mods= 0;
+  if (0)
+    {
+    }
+  else
+    {
+      enum { _= 0, S= ShiftKeyBit, C= CtrlKeyBit, O= OptionKeyBit, M= CommandKeyBit };
+      static char midofiers[32]= {	/* ALT=Cmd, META=ignored, C-ALT=Opt, META=ignored */
+       	/*                - -       - S       L -       L S */
+       	/* - - - - */ _|_|_|_,  _|_|_|S,  _|_|_|_,  _|_|_|S,
+       	/* - - - C */ _|_|C|_,  _|_|C|S,  _|_|C|_,  _|_|C|S,
+       	/* - - A - */ _|M|_|_,  _|M|_|S,  _|M|_|_,  _|M|_|S,
+       	/* - - A C */ O|_|_|_,  O|_|_|S,  O|_|_|_,  O|_|_|S,
+       	/*                - -       - S       L -       L S */
+       	/* M - - - */ _|M|_|_,  _|M|_|S,  _|M|_|_,  _|M|_|S,
+       	/* M - - C */ _|M|C|_,  _|M|C|S,  _|M|C|_,  _|M|C|S,
+       	/* M - A - */ _|M|_|_,  _|M|_|S,  _|M|_|_,  _|M|_|S,
+       	/* M - A C */ O|_|_|_,  O|M|_|S,  O|M|_|_,  O|M|_|S,
+      };
+#    if defined(__POWERPC__) || defined(__ppc__)
+      mods= midofiers[state & 0x1f];
+#    else
+      mods= midofiers[state & 0x0f];
+#    endif
+#    if defined(DEBUG_EVENTS)
+      fprintf(stderr, "X mod %x -> Sq mod %x (default)\n", state & 0xf, mods);
+#    endif
+    }
+  return mods;
+}
+
+/*#define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__) */
+#define trace()
+
+static void
+noteMouseEventPosition(const struct PP_InputEvent_Mouse *evt)
+{
+  mousePosition.x = evt->x;
+  mousePosition.y = evt->y;
+}
+  
+static void
+noteMouseEventState(const struct PP_InputEvent_Mouse* evt)
+{
+  noteMouseEventPosition(evt);
+  modifierState = nacl2sqModifier(evt->modifier);
+}
+
+static PP_Bool
+getDesc()
+{
+  if (!image) {
+    return PP_FALSE;
+  }
+
+  if (image_data_->Describe(image, &desc)) {
+    screenWidth = desc.size.width;
+    screenHeight = desc.size.height;
+    screenStride = desc.stride;
+    return PP_TRUE;
+  }
+  screenWidth = 0;
+  screenHeight = 0;
+  screenStride = 0;
+  return PP_FALSE;
+}
+
+static void 
+DestroyContext(PP_Instance instance)
+{
+  Log(isContextValid() ? "destroy good\n" : "destroy bad\n");
+  if (isContextValid()) {
+    pthread_mutex_lock(&image_mutex);
+    core_->ReleaseResource(gc);
+    gc = 0;
+    core_->ReleaseResource(image);
+    image = 0;
+    pthread_mutex_unlock(&image_mutex);
+  }
+}
+
+static void
+CreateContext(PP_Instance instance, const struct PP_Size* size)
+{
+  if (isContextValid())
+    return;
+
+  Log("making gc\n");
+  sprintf(LogBuffer, "size: %d, %d\n", (int)size->width, (int)size->height);
+  Log(LogBuffer);
+  pthread_mutex_lock(&image_mutex);
+  gc = graphics_2d_->Create(instance, size, false);
+  if (!isContextValid() /*graphics_2d_->IsGraphics2D(gc)*/) {
+    Log("failed to create gc\n");
+  }
+  if (!instance_->BindGraphics(instance, gc)) {
+    Log("couldn't bind gc\n");
+  }
+
+  Log("make image\n");
+  image = image_data_->Create(instance, PP_IMAGEDATAFORMAT_BGRA_PREMUL,
+				size,
+				PP_FALSE);
+  getDesc();
+  {
+    uint32_t *pixels = image_data_->Map(image);
+    int i, j;
+    for (j = 0; j < screenHeight; j++) {
+      for (i = 0; i < screenWidth; i++) {
+	pixels[j*(screenStride/4)+i] = (j<<24)+ (i<<8) + 0xFF;
+      }
+    }
+    image_data_->Unmap(image);
+  }
+  pthread_mutex_unlock(&image_mutex);
+}
+
+static void
+FlushCallback(void *user_data, int32_t result)
+{
+  flush_pending = 0;
+}
+
+static struct PP_CompletionCallback CompletionCallback = {FlushCallback, 0};
+
+static void
+FlushPixelBuffer()
+{
+  struct PP_Point top_left;
+  /*  struct PP_Rect src_left = NULL;*/
+  top_left.x = 0;
+  top_left.y = 0;
+  if (!isContextValid() /*!(graphics_2d_->IsGraphics2D(gc))*/) {
+    flush_pending = 0;
+    return;
+  }
+  graphics_2d_->PaintImageData(gc, image, &top_left, NULL);
+  flush_pending = 1;
+  graphics_2d_->Flush(gc, CompletionCallback);
+}
+
+static PP_Bool
+isContextValid()
+{
+  return gc != 0;
+}
+
+void
+Paint()
+{
+  if (!flush_pending) {
+    FlushPixelBuffer();
+  }
+}
+
+void
+NaCl_DidChangeView(PP_Instance instance,
+		       const struct PP_Rect* position,
+		       const struct PP_Rect* clip)
+{
+  if (position->size.width == screenWidth &&
+      position->size.height == screenHeight)
+    return;  // Size didn't change, no need to update anything.
+  Log("change view\n");
+  DestroyContext(instance);
+  CreateContext(instance, &position->size);
+}
+
+PP_Bool
+NaCl_HandleInputEvent(PP_Instance instance,
+		      const struct PP_InputEvent* evt)
+{
+  switch (evt->type) {
+  case PP_INPUTEVENT_TYPE_MOUSEDOWN:
+    noteMouseEventState(&evt->u.mouse);
+    switch (evt->u.mouse.button) {
+    case PP_INPUTEVENT_MOUSEBUTTON_NONE: case PP_INPUTEVENT_MOUSEBUTTON_LEFT: case PP_INPUTEVENT_MOUSEBUTTON_MIDDLE: case PP_INPUTEVENT_MOUSEBUTTON_RIGHT:
+      buttonState |= nacl2sqButton(evt->u.mouse.button);
+      recordMouseEvent();
+      break;
+    }
+    return PP_TRUE;
+  case PP_INPUTEVENT_TYPE_MOUSEUP:
+    noteMouseEventState(&evt->u.mouse);
+    switch (evt->u.mouse.button) {
+    case 1: case 2: case 3:
+      buttonState &= ~nacl2sqButton(evt->u.mouse.button);
+      recordMouseEvent();
+      break;
+    }
+    return PP_TRUE;
+  case PP_INPUTEVENT_TYPE_MOUSEMOVE:
+    noteMouseEventState(&evt->u.mouse);
+    recordMouseEvent();
+    return PP_TRUE;
+  }
+  return PP_FALSE;
+}
+
+void
+NaCl_InitializeModule(PPB_GetInterface get_browser_interface)
+{
+  core_ = (const struct PPB_Core*)
+    get_browser_interface(PPB_CORE_INTERFACE);
+  instance_ = (const struct PPB_Instance*)
+    get_browser_interface(PPB_INSTANCE_INTERFACE);
+  graphics_2d_ = (const struct PPB_Graphics2D*)
+   get_browser_interface(PPB_GRAPHICS_2D_INTERFACE);
+  image_data_ = (const struct PPB_ImageData*)
+   get_browser_interface(PPB_IMAGEDATA_INTERFACE);
+  pthread_mutex_init(&image_mutex, NULL);
+}
 
 static int handleEvents(void)
 {
-  printf("handle custom events here...\n");
-  return 0;	/* 1 if events processed */
+  return !iebEmptyP(); /* 1 if events processed */
 }
 
 static sqInt display_clipboardSize(void)
@@ -101,14 +385,14 @@ static sqInt display_ioBeep(void)
 
 static sqInt display_ioRelinquishProcessorForMicroseconds(sqInt microSeconds)
 {
-  aioSleep(handleEvents() ? 0 : microSeconds);
+  /* aioSleep(handleEvents() ? 0 : microSeconds); */
   return 0;
 }
 
 static sqInt display_ioProcessEvents(void)
 {
   handleEvents();
-  aioPoll(0);
+  /* aioPoll(0); */
   return 0;
 }
 
@@ -151,7 +435,24 @@ static sqInt display_ioForceDisplayUpdate(void)
 static sqInt display_ioShowDisplay(sqInt dispBitsIndex, sqInt width, sqInt height, sqInt depth,
 				   sqInt affectedL, sqInt affectedR, sqInt affectedT, sqInt affectedB)
 {
-  trace();
+  uint32_t *dispBits= pointerForOop(dispBitsIndex);
+  uint32_t *pixels;
+  int i, j;
+  if (toQuit) {
+    pthread_exit(NULL);
+  }
+  pthread_mutex_lock(&image_mutex);
+  if (isContextValid()) {
+    pixels = image_data_->Map(image);
+    for (j = 0; j < screenHeight; j++) {
+      for (i = 0; i < screenWidth; i++) {
+	pixels[j*(screenStride/4)+i] = dispBits[j*width+i];
+      }
+    }
+    image_data_->Unmap(image);
+    /*FlushPixelBuffer();*/
+  }
+  pthread_mutex_unlock(&image_mutex);
   return 0;
 }
 
@@ -185,7 +486,7 @@ static void  display_ioGLsetBufferRect(glRenderer *r, sqInt x, sqInt y, sqInt w,
 static char *display_winSystemName(void)
 {
   trace();
-  return "Custom";
+  return "NaCl";
 }
 
 static void display_winInit(void)
@@ -240,8 +541,6 @@ SqDisplayDefine(nacl);	/* name must match that in makeInterface() below */
 
 static void display_printUsage(void)
 {
-  printf("\nCustom Window <option>s: (none)\n");
-  /* otherwise... */
 }
 
 static void display_printUsageNotes(void)
@@ -267,3 +566,9 @@ static void *display_makeInterface(void)
 #include "SqModule.h"
 
 SqModuleDefine(display, nacl);		/* name must match that in sqUnixMain.c's moduleDescriptions */
+
+struct SqModule *
+nacl_display_module()
+{
+  return &display_nacl;
+}
