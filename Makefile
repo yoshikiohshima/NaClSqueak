@@ -48,8 +48,8 @@ LOCALPLUGINNAMES = $(notdir $(PLUGINDIRS))
 
 PLUGINS_X86_32 = $(addprefix bld/,$(LOCALPLUGINNAMES:%=%_x86_32.a))
 
-all: check_variables squeak_x86_32.nexe
-#squeak.nmf squeak_dbg.nmf 
+all: squeak_x86_32.nexe
+# check_variables #squeak.nmf squeak_dbg.nmf 
 
 echo:
 	@echo OBJECTS_X86_32 is $(OBJECTS_X86_32)
