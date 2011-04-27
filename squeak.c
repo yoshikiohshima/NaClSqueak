@@ -328,7 +328,7 @@ void*
 runInterpret(void *arg)
 {
   Log("run interpret\n");
-  /*char *argv[] = {"squeak", NULL};
-    sqMain(1, argv, NULL);*/
+  char *argv[] = {"squeak", NULL};
+    sqMain(1, argv, NULL);
   return NULL;
 }

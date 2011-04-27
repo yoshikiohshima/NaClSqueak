@@ -1435,6 +1435,9 @@ int sqMain(int argc, char **argv, char **envp)
   tzset();	/* should _not_ be necessary! */
 #endif
 
+  Log(argv[0]);
+  Log("\n");
+
   recordFullPathForVmName(argv[0]);	/* full vm path */
   squeakPlugins= vmPath;		/* default plugin location is VM directory */
 
@@ -1457,6 +1460,8 @@ int sqMain(int argc, char **argv, char **envp)
   if (!realpath(argv[0], vmName))
     vmName[0]= 0; /* full VM name */
 #endif
+
+  Log("modules\n");
 
 #ifdef DEBUG_IMAGE
   printf("vmName: %s -> %s\n", argv[0], vmName);
@@ -1499,6 +1504,8 @@ int sqMain(int argc, char **argv, char **envp)
   signal(SIGHUP,  sighup);
   signal(SIGQUIT, sigquit);
 #endif
+
+  return 1;
 
   /* run Squeak */
   if (runInterpreter)

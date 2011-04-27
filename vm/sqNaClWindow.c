@@ -132,7 +132,7 @@ static int nacl2sqModifier(uint32_t state)
 }
 
 /*#define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__) */
-#define trace()
+#define trace() do {sprintf(LogBuffer, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__); Log(LogBuffer);} while(0)
 
 static void
 noteMouseEventPosition(const struct PP_InputEvent_Mouse *evt)
