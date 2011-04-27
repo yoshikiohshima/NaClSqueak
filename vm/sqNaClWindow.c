@@ -250,9 +250,9 @@ isContextValid()
 void
 Paint()
 {
-  if (!flush_pending) {
+  /*  if (!flush_pending) {
     FlushPixelBuffer();
-  }
+    }*/
 }
 
 void

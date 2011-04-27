@@ -164,14 +164,16 @@ Instance_DidCreate(PP_Instance instance,
                                   const char* argn[],
                                   const char* argv[])
 {
-  loader = loader_->Create(instance);
-  requestInfo = requestInfo_->Create(instance);
-  requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_URL, StrToVar("http://localhost:5103/squeak/Etoys.image"));
-  requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_METHOD, StrToVar("GET"));
-  loader_->Open(loader, requestInfo, LoadCompletionCallback);
-  Log("loader open\n");
-  return loader ? PP_TRUE : PP_FALSE;
-
+  if (1) {
+    loader = loader_->Create(instance);
+    requestInfo = requestInfo_->Create(instance);
+    requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_URL, StrToVar("http://localhost:5103/squeak/Etoys.image"));
+    requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_METHOD, StrToVar("GET"));
+    loader_->Open(loader, requestInfo, LoadCompletionCallback);
+    Log("loader open\n");
+    return loader ? PP_TRUE : PP_FALSE;
+  }
+  return PP_TRUE;
 }
 
 static void Instance_DidDestroy(PP_Instance instance) {
@@ -230,6 +232,8 @@ Squeak_HasMethod(void* object,
       return true;
     if (strcmp(method_name, kGetStatusMethodId) == 0)
       return true;
+    if (strcmp(method_name, kGetLoaderStatusMethodId) == 0)
+      return true;
   }
   return false;
 }
@@ -259,6 +263,8 @@ Squeak_Call(void* object,
     }
     if (strcmp(method_name, kGetStatusMethodId) == 0)
       return StrToVar(NaClStatus());
+    if (strcmp(method_name, kGetLoaderStatusMethodId) == 0)
+      return loader_status;
   }
   return v;
 }
@@ -277,6 +283,14 @@ PPP_InitializeModule(PP_Module a_module_id, PPB_GetInterface get_browser_interfa
   module_id = a_module_id;
   var_interface = 
       (struct PPB_Var_Deprecated*)(get_browser_interface(PPB_VAR_DEPRECATED_INTERFACE));
+  loader_ = (const struct PPB_URLLoader*)
+    get_browser_interface(PPB_URLLOADER_INTERFACE);
+  requestInfo_ = (const struct PPB_URLRequestInfo*)
+    get_browser_interface(PPB_URLREQUESTINFO_INTERFACE);
+  responseInfo_ = (const struct PPB_URLResponseInfo*)
+    get_browser_interface(PPB_URLRESPONSEINFO_INTERFACE);
+  var_ = (const struct PPB_Var*)
+    get_browser_interface(PPB_VAR_INTERFACE);
   NaCl_InitializeModule(get_browser_interface);
   memset(&ppp_class, 0, sizeof(ppp_class));
   ppp_class.Call = Squeak_Call;
@@ -314,7 +328,7 @@ void*
 runInterpret(void *arg)
 {
   Log("run interpret\n");
-  char *argv[] = {"squeak", NULL};
-  sqMain(1, argv, NULL);
+  /*char *argv[] = {"squeak", NULL};
+    sqMain(1, argv, NULL);*/
   return NULL;
 }
