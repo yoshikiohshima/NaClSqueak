@@ -572,3 +572,9 @@ nacl_display_module()
 {
   return &display_nacl;
 }
+
+int vm_serial = 0;
+char vm_date[] = "1234";
+char cc_version[] = "nacl";
+char ux_version[] = "nacl";
+

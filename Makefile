@@ -8,9 +8,13 @@
 
 PYTHON = python
 
-SQCFILES = sqVirtualMachine.c sqUnixMain.c vm/sqNaClWindow.c vm/sqUnixMemory.c vm/sqNamedPrims.c vm/sqUnixCharConv.c
+SQCFILES = sqUnixMain.c sqNaClWindow.c sqNaClSound.c sqUnixMemory.c sqUnixCharConv.c sqUnixExternalPrims.c osExports.c
+CROSSCFILES = sqVirtualMachine.c sqNamedPrims.c 
 
 CFILES = squeak.c
+
+AR = $(NACL_SDK_ROOT)/toolchain/win_x86/bin/nacl-ar
+RANLIB = $(NACL_SDK_ROOT)/toolchain/win_x86/bin/nacl-ranlib
 
 NACL_SDK_ROOT = ../..
 
@@ -19,7 +23,7 @@ NACL_SDK_ROOT = ../..
 
 CFLAGS = -Wall -Wno-long-long -pthread -Werror
 SQCFLAGS = -Wno-long-long -pthread -Wno-pragmas
-INCLUDES = -Isrc/vm -I. -Ivm
+INCLUDES = -Isrc/vm -I. -Ivm -ICross/vm
 LDFLAGS = -lppruntime \
           -lpthread \
           -lgoogle_nacl_platform \
@@ -28,34 +32,48 @@ LDFLAGS = -lppruntime \
           $(ARCH_FLAGS)
 OPT_FLAGS = -O2
 
-LOCALCFILES = $(notdir $(SQCFILES))
+LOCALSQCFILES = $(notdir $(SQCFILES))
+LOCALCROSSCFILES = $(notdir $(CROSSCFILES))
 
-VM_OBJECTS_X86_32_BASE = $(LOCALCFILES:%.c=%_x86_32.o)
-VM_OBJECTS_X86_32 = $(addprefix bld/,$(VM_OBJECTS_X86_32_BASE))
+VM_SQ_OBJECTS_X86_32_BASE = $(LOCALSQCFILES:%.c=%_x86_32.o)
+VM_SQ_OBJECTS_X86_32 = $(addprefix bld/,$(VM_SQ_OBJECTS_X86_32_BASE))
+
+VM_CROSS_OBJECTS_X86_32_BASE = $(LOCALCROSSCFILES:%.c=%_x86_32.o)
+VM_CROSS_OBJECTS_X86_32 = $(addprefix bld/,$(VM_CROSS_OBJECTS_X86_32_BASE))
+
+INTERP_X86_32 = bld/interp_x86_32.o
 
 PLUGINDIRS	= $(wildcard src/vm/intplugins/*)
 LOCALPLUGINNAMES = $(notdir $(PLUGINDIRS))
 
-PLUGINS_X86_32 = $(LOCALPLUGINNAMES:%=%_x86_32.o)
+PLUGINS_X86_32 = $(addprefix bld/,$(LOCALPLUGINNAMES:%=%_x86_32.a))
 
-all: check_variables $(VM_OBJECTS_X86_32) 
+all: check_variables $(VM_SQ_OBJECTS_X86_32) $(VM_CROSS_OBJECTS_X86_32) 
 #squeak.nmf squeak_dbg.nmf 
 
 echo:
 	@echo OBJECTS_X86_32 is $(OBJECTS_X86_32)
 
 plugins: $(PLUGINS_X86_32)
-vm: $(VM_OBJECTS_X86_32)
+vm: $(VM_SQ_OBJECTS_X86_32) $(VM_CROSS_OBJECTS_X86_32)
+interp: 
 
-interp_x86_32.o: src/vm/interp.c
-	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) $(DEBUG_FLAGS) -c -o bld/$(notdir $@) $<
+$(INTERP_X86_32): src/vm/interp.c
+	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) $(DEBUG_FLAGS) -c -o $@ $<
 
-$(VM_OBJECTS_X86_32):
-	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) $(DEBUG_FLAGS) -c -o bld/$(notdir $@) vm/$(subst _x86_32.o,,$(notdir $@)).c
+$(VM_SQ_OBJECTS_X86_32):
+	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) $(DEBUG_FLAGS) -c -o $@ vm/$(subst _x86_32.o,,$(notdir $@)).c
 
-$(PLUGINS_X86_32): 
-	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) -Iplugins/$(subst _x86_32.o,,$@) $(DEBUG_FLAGS) -c -o bld/$@ src/vm/intplugins/$(subst _x86_32.o,,$@)/$(subst _x86_32.o,.c,$@)
+$(VM_CROSS_OBJECTS_X86_32):
+	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) $(DEBUG_FLAGS) -c -o $@ Cross/vm/$(subst _x86_32.o,,$(notdir $@)).c
 
+$(PLUGINS_X86_32): bld/%_x86_32.a: src/vm/intplugins/%
+	$(AR) rc $@
+	for i in $^/$(notdir $^).c $(wildcard plugins/$(notdir $^)/*.c) $(wildcard vm/plugins/$(notdir $^)/*.c); do \
+		$(CC) $(SQCFLAGS) -m32 $(INCLUDES) -DSQUEAK_BUILTIN_PLUGIN -Iplugins/$(notdir $^) $(DEBUG_FLAGS) -c -o bld/`basename $$i .c`.o $$i; \
+	$(AR) r $@ bld/`basename $$i .c`.o; \
+	done
+	$(RANLIB) $@
 
 
 squeak.nmf: squeak_x86_32.nexe squeak_x86_64.nexe
@@ -72,7 +90,7 @@ squeak_dbg.nmf: squeak_x86_32_dbg.nexe squeak_x86_64_dbg.nexe
 # Have to link with g++: the implementation of the PPAPI proxy
 # is a C++ implementation
 
-squeak_x86_32.nexe: $(OBJECTS_X86_32)
+squeak_x86_32.nexe: $(OBJECTS_X86_32) $(VM_SQ_OBJECTS_X86_32) $(VM_CROSS_OBJECTS_X86_32) $(INTERP_X86_32) $(PLUGINS_X86_32)
 	$(CPP) $^ $(LDFLAGS) -m32 -o $@
 
 squeak_x86_64.nexe: $(OBJECTS_X86_64)

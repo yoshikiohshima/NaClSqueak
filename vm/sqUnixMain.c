@@ -258,6 +258,7 @@ sqInt ioSeconds(void)
 /* copy src filename to target, if src is not an absolute filename,
  * prepend the cwd to make target absolute
  */
+#ifndef NACL
 static void pathCopyAbs(char *target, const char *src, size_t targetSize)
 {
   if (src[0] == '/')
@@ -269,7 +270,7 @@ static void pathCopyAbs(char *target, const char *src, size_t targetSize)
       strcat(target, src);
     }
 }
-
+#endif
 
 static void recordFullPathForVmName(const char *localVmName)
 {
@@ -286,6 +287,7 @@ static void recordFullPathForVmName(const char *localVmName)
     }
 #endif
 
+#ifndef NACL
   /* get canonical path to vm */
   if (realpath(localVmName, vmPath) == 0)
     pathCopyAbs(vmPath, localVmName, sizeof(vmPath));
@@ -300,14 +302,21 @@ static void recordFullPathForVmName(const char *localVmName)
 	  break;
 	}
   }
+#else
+  localVmName= "naclsqueak";
+#endif
 }
 
 static void recordFullPathForImageName(const char *localImageName)
 {
+#ifndef NACL
   struct stat s;
   /* get canonical path to image */
   if ((stat(localImageName, &s) == -1) || (realpath(localImageName, imageName) == 0))
     pathCopyAbs(imageName, localImageName, sizeof(imageName));
+#else
+  localImageName= imageName;
+#endif
 }
 
 /* vm access */
@@ -905,6 +914,10 @@ static void loadImplicit(struct SqModule **addr, char *evar, char *type, char *n
 #ifdef NACL
 extern struct SqModule * nacl_display_module();
 extern struct SqModule * nacl_sound_module();
+
+static void checkModuleVersion(struct SqModule *module, int required, int actual)
+{
+}
 #endif
 
 static void loadModules(void)
@@ -1009,14 +1022,16 @@ static void vm_parseEnvironment(void)
   if ((ev= getenv("SQUEAK_PATHENC")))	setEncoding(&uxPathEncoding, ev);
   if ((ev= getenv("SQUEAK_TEXTENC")))	setEncoding(&uxTextEncoding, ev);
 
+#ifndef NACL
   if ((ev= getenv("SQUEAK_VM")))	requireModulesNamed(ev);
+#endif
 }
 
 
 static void usage(void);
 static void versionInfo(void);
 
-
+#ifndef NACL
 static int parseModuleArgument(int argc, char **argv, struct SqModule **addr, char *type, char *name)
 {
   if (*addr)
@@ -1103,7 +1118,17 @@ static int vm_parseArgument(int argc, char **argv)
     }
   return 0;	/* option not recognised */
 }
+#else
+static int parseModuleArgument(int argc, char **argv, struct SqModule **addr, char *type, char *name)
+{
+  return 0;
+}
 
+static int vm_parseArgument(int argc, char **argv)
+{
+  return 0;
+}
+#endif
 
 static void vm_printUsage(void)
 {
@@ -1385,7 +1410,7 @@ int sqMain(int argc, char **argv, char **envp)
   if ((squeakArgVec= calloc(argc + 1, sizeof(char *))) == 0)
     outOfMemory();
 
-  signal(SIGSEGV, sigsegv);
+  /*  signal(SIGSEGV, sigsegv);*/
 
 #if defined(__alpha__) && defined(__osf__)
   /* disable printing of unaligned access exceptions */
@@ -1420,8 +1445,10 @@ int sqMain(int argc, char **argv, char **envp)
     printf("soundModule   %p %s\n", soundModule,   soundModule->name);
 #endif
 
+#ifndef NACL
   if (!realpath(argv[0], vmName))
     vmName[0]= 0; /* full VM name */
+#endif
 
 #ifdef DEBUG_IMAGE
   printf("vmName: %s -> %s\n", argv[0], vmName);
@@ -1430,7 +1457,7 @@ int sqMain(int argc, char **argv, char **envp)
 #endif
 
   initTimers();
-  aioInit();
+  /*aioInit(); */
   dpy->winInit();
   imgInit();
   dpy->winOpen();
@@ -1472,7 +1499,9 @@ int sqMain(int argc, char **argv, char **envp)
   /* we need these, even if not referenced from main executable */
   (void)sq2uxPath;
   (void)ux2sqPath;
+#ifndef NACL
   sqDebugAnchor();
+#endif
   
   return 0;
 }
@@ -1572,3 +1601,18 @@ sqInt ioGatherEntropy(char *buffer, sqInt bufSize)
   return 0;
 #endif
 }
+
+#ifdef NACL
+int
+link(const char *old, const char *new)
+{
+  return -1;
+}
+
+int
+unlink(const char *pathname)
+{
+  return -1;
+}
+#endif
+

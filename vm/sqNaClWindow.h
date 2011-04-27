@@ -5,7 +5,10 @@ extern int32_t toQuit;
 
 extern int flush_display_requested;
 
-int sqMain(int argc, char **argv, char **envp);
+struct SqModule * nacl_display_module();
+struct SqModule * nacl_sound_module();
+
+extern int sqMain(int argc, char **argv, char **envp);
 void Paint();
 
 extern char LogBuffer[1024];
@@ -21,3 +24,4 @@ PP_Bool NaCl_HandleInputEvent(PP_Instance instance,
 			      const struct PP_InputEvent* evt);
 
 void NaCl_InitializeModule(PPB_GetInterface get_browser_interface);
+

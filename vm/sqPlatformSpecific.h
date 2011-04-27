@@ -64,7 +64,11 @@ extern void sqFilenameFromString(char *uxName, sqInt stNameIndex, int sqNameLeng
 #include <unistd.h>
 
 #undef	sqFTruncate
+#ifndef NACL
 #define	sqFTruncate(f,o) ftruncate(fileno(f), o)
+#else
+#define	sqFTruncate(f,o) 0
+#endif
 
 #ifndef __GNUC__
 # if HAVE_ALLOCA_H
