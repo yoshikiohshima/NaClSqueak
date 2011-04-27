@@ -11,14 +11,18 @@
     <script type="text/javascript">
       var squeakModule = null;
       var paintInterval = null;
+      var statusInterval = null;
 
       function moduleDidLoad() {
         squeakModule = document.getElementById('squeak');
         paintInterval = setInterval("squeakModule.paint()", 50);
+        statusInterval = setInterval("testStatus()", 500);
+        getSqueakStatus();
       }
 
       function pageDidUnload() {
-      clearInterval(paintInterval);
+        clearInterval(paintInterval);
+        clearInterval(statusInterval);
       }
 
     function updateStatus(opt_message) {
@@ -28,9 +32,9 @@
       var statusField = document.getElementById('status_field');
       if (statusField) {
         statusField.innerHTML = statusText;
+		    statusField.scrollTop = statusField.scrollHeight;
       }
     }
-
 
     function getSqueakStatus() {
       var statusText;
@@ -39,8 +43,26 @@
       } catch(e) {
         alert(e.message);
       }
-       updateStatus(squeakModule.getStatus());
+       updateStatus(statusText);
     }
+
+    function getLoaderStatus() {
+      var statusText;
+      try {
+        statusText = squeakModule.getLoaderStatus();
+      } catch(e) {
+        alert(e.message);
+      }
+       updateStatus(statusText);
+    }
+
+    function testStatus() {
+      var statusBox = document.getElementById('status_checkbox');
+      if (statusBox.checked) {
+        getSqueakStatus();
+      }
+    }
+
 
     </script>
   </head>
@@ -70,8 +92,15 @@
     <br />
   <form name="squeak_form" action="" method="get">
     <input type="button" value="Call getStatus()" onclick="getSqueakStatus()">
+    <input type="button" value="Call getLoaderStatus()" onclick="getLoaderStatus()">
+    <input type="checkbox" id="status_checkbox"> Update status 
   </form>
-<h2>Status</h2>
-<div id="status_field">NO-STATUS</div>
+	<table>
+		<tr>
+			<td style="width: 600px; height: 300px;">
+				<pre id="status_field" style="width: 100%; height: 100%; overflow:scroll;">NO-STATUS</pre>
+			</td>
+		</tr>
+	</table>
   </body>
 </HTML>

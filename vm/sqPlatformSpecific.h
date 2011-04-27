@@ -70,6 +70,35 @@ extern void sqFilenameFromString(char *uxName, sqInt stNameIndex, int sqNameLeng
 #define	sqFTruncate(f,o) 0
 #endif
 
+#ifdef NACL
+#undef sqImageFile
+#undef sqImageFileClose
+#undef sqImageFileOpen
+#undef sqImageFilePosition
+#undef sqImageFileRead
+#undef sqImageFileSeek
+#undef sqImageFileWrite
+
+struct NaClFile {
+  char *buffer;
+  int32_t index;
+};
+
+#define sqImageFile					   struct NaClFile*
+#define sqImageFileClose(f)                  		   nacl_fclose(f)
+#define sqImageFileOpen(fileName, mode)      		   nacl_fopen(fileName, mode)
+#define sqImageFilePosition(f)               		   nacl_ftell(f)
+#define sqImageFileRead(ptr, sz, count, f)   		   nacl_fread(ptr, sz, count, f)
+#define sqImageFileSeek(f, pos)              		   nacl_fseek(f, pos);
+#define sqImageFileWrite(ptr, sz, count, f)  		   nacl_fwrite(ptr, sz, count, f)
+extern int nacl_fclose(sqImageFile f);
+extern sqImageFile nacl_fopen(char *fileName, char* mode);
+extern long nacl_ftell(sqImageFile f);
+extern size_t nacl_fread(void *ptr, size_t sz, size_t count, sqImageFile f);
+extern int nacl_fseek(sqImageFile f, off_t offset);
+extern int nacl_fwrite(void *ptr, size_t sz, size_t count, sqImageFile f);
+#endif
+
 #ifndef __GNUC__
 # if HAVE_ALLOCA_H
 #   include <alloca.h>

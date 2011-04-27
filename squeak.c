@@ -23,6 +23,11 @@
 #include <ppapi/c/ppb_image_data.h>
 #include <ppapi/c/ppb_graphics_2d.h>
 #include <ppapi/c/ppb_core.h>
+#include <ppapi/c/ppb_var.h>
+#include <ppapi/c/ppb_url_loader.h>
+#include <ppapi/c/ppb_url_request_info.h>
+#include <ppapi/c/ppb_url_response_info.h>
+#include <ppapi/c/pp_completion_callback.h>
 
 #include "sqNaClWindow.h"
 
@@ -45,9 +50,20 @@ void* runInterpret(void *arg);
 static struct PPB_Var_Deprecated* var_interface = NULL;
 static struct PPP_Class_Deprecated ppp_class;
 static PP_Module module_id = 0;
+const struct PPB_Instance* instance_;
+const struct PPB_URLLoader* loader_;
+const struct PPB_URLRequestInfo* requestInfo_;
+const struct PPB_URLResponseInfo* responseInfo_;
+const struct PPB_Var* var_;
+
+static PP_Resource loader = 0;
+static PP_Resource requestInfo = 0;
+static PP_Resource responseInfo = 0;
 
 static const char* const kPaintMethodId = "paint";
 static const char* const kGetStatusMethodId = "getStatus";
+static const char* const kGetLoaderStatusMethodId = "getLoaderStatus";
+struct PP_Var loader_status;
 
 static struct PPP_Instance instance_interface = {
   &Instance_DidCreate,
@@ -58,6 +74,29 @@ static struct PPP_Instance instance_interface = {
   NULL,  /* HandleDocumentLoad is not supported by NaCl modules. */
   &Instance_GetInstanceObject,
 };
+
+static int32_t
+GetContentLength(struct PP_Var var)
+{
+  uint32_t headerLen;
+  int32_t len;
+  char c;
+  const char *cStr = var_interface->VarToUtf8(var, &headerLen);
+  char *occurence;
+  occurence = strstr(cStr, "Content-Length: ");
+  if (!occurence) {
+    return -1;
+  }
+  occurence += strlen("Content-Length: ");
+  len = 0;
+  c = *occurence++;
+  while ('0' <= c && c <= '9') {
+    len *= 10;
+    len += (c - '0');
+    c = *occurence++;
+  }
+  return len;
+}
 
 /**
  * Returns C string contained in the @a var or NULL if @a var is not string.
@@ -89,13 +128,50 @@ PP_Var StrToVar(const char* str)
   return PP_MakeUndefined();
 }
 
+char *image_file_buffer = NULL;
+
+static void
+ReadCallback(void *user_data, int32_t result)
+{
+  sprintf(LogBuffer, "read result: %d\n", (int)result);
+  Log(LogBuffer);
+  pthread_create(&interpret_thread, NULL, runInterpret, NULL);
+}
+
+static struct PP_CompletionCallback ReadCompletionCallback = {ReadCallback, 0};
+
+static void
+LoadCallback(void *user_data, int32_t result)
+{
+  int32_t len;
+  responseInfo = loader_->GetResponseInfo(loader);
+  loader_status = responseInfo_->GetProperty(responseInfo, PP_URLRESPONSEPROPERTY_HEADERS);
+  len = GetContentLength(loader_status);
+  sprintf(LogBuffer, "len: %d\n", (int)len);
+  Log(LogBuffer);
+  if (len > 0) {
+    image_file_buffer = malloc(len);
+    Log (image_file_buffer ? "file buffer allocated\n" : "allocation failed\n");
+    loader_->ReadResponseBody(loader, image_file_buffer, len, ReadCompletionCallback);
+  }
+}
+
+static struct PP_CompletionCallback LoadCompletionCallback = {LoadCallback, 0};
+
 static PP_Bool
 Instance_DidCreate(PP_Instance instance,
                                   uint32_t argc,
                                   const char* argn[],
                                   const char* argv[])
 {
-  return pthread_create(&interpret_thread, NULL, runInterpret, NULL) == 0;
+  loader = loader_->Create(instance);
+  requestInfo = requestInfo_->Create(instance);
+  requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_URL, StrToVar("http://localhost:5103/squeak/Etoys.image"));
+  requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_METHOD, StrToVar("GET"));
+  loader_->Open(loader, requestInfo, LoadCompletionCallback);
+  Log("loader open\n");
+  return loader ? PP_TRUE : PP_FALSE;
+
 }
 
 static void Instance_DidDestroy(PP_Instance instance) {

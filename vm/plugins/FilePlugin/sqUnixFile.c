@@ -159,7 +159,7 @@ static int maybeOpenDir(char *unixPath)
     }
   return true;
 #else
-  return false
+  return false;
 #endif
 }
 

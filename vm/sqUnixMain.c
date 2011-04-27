@@ -1320,6 +1320,7 @@ static void imageNotFound(char *imageName)
 
 void imgInit(void)
 {
+#ifndef NACL
   /* read the image file and allocate memory for Squeak heap */
   for (;;)
     {
@@ -1357,6 +1358,11 @@ void imgInit(void)
       sqImageFileClose(f);
       break;
     }
+#else
+  sqImageFile f= nacl_fopen(imageName, "r");
+  readImageFromFileHeapSize(f, 64 * 1024 * 1024);
+  sqImageFileClose(f);
+#endif  
 }
 
 #if defined(__GNUC__) && ( defined(i386) || defined(__i386) || defined(__i386__)  \
@@ -1613,6 +1619,54 @@ int
 unlink(const char *pathname)
 {
   return -1;
+}
+
+int
+nacl_fclose(sqImageFile f)
+{
+  free(f->buffer);
+  f->buffer = NULL;
+  f->index = 0;
+  return 0;
+}
+
+sqImageFile
+nacl_fopen(char *fileName, char* mode)
+{
+  static struct NaClFile nf;
+  extern char *image_file_buffer;
+  nf.buffer = image_file_buffer;
+  nf.index = 0;
+  return &nf;
+}
+
+long
+nacl_ftell(sqImageFile f)
+{
+  return f->index;
+}
+
+size_t
+nacl_fread(void *ptr, size_t sz, size_t count, sqImageFile f)
+{
+  memcpy(ptr, f->buffer, sz * count);
+  f->index += sz * count;
+  return count;
+}
+
+int
+nacl_fseek(sqImageFile f, off_t offset)
+{
+  f->index = offset;
+  return 0;
+}
+
+int
+nacl_fwrite(void *ptr, size_t sz, size_t count, sqImageFile f)
+{
+  memcpy(f->buffer, ptr, sz * count);
+  f->index += sz * count;
+  return count;
 }
 #endif
 

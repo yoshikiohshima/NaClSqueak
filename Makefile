@@ -48,7 +48,7 @@ LOCALPLUGINNAMES = $(notdir $(PLUGINDIRS))
 
 PLUGINS_X86_32 = $(addprefix bld/,$(LOCALPLUGINNAMES:%=%_x86_32.a))
 
-all: check_variables $(VM_SQ_OBJECTS_X86_32) $(VM_CROSS_OBJECTS_X86_32) 
+all: check_variables squeak_x86_32.nexe
 #squeak.nmf squeak_dbg.nmf 
 
 echo:
@@ -56,7 +56,7 @@ echo:
 
 plugins: $(PLUGINS_X86_32)
 vm: $(VM_SQ_OBJECTS_X86_32) $(VM_CROSS_OBJECTS_X86_32)
-interp: 
+interp: $(INTERP_X86_32)
 
 $(INTERP_X86_32): src/vm/interp.c
 	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) $(DEBUG_FLAGS) -c -o $@ $<
