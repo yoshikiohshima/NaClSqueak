@@ -32,7 +32,9 @@
 
 #include "sq.h"
 #include "sqMemoryAccess.h"
+#ifndef NACL
 #include "sqaio.h"
+#endif
 #include "sqUnixCharConv.h"
 #include "debug.h"
 
