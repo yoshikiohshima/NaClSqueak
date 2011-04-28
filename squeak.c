@@ -24,11 +24,13 @@
 #include <ppapi/c/ppb_graphics_2d.h>
 #include <ppapi/c/ppb_core.h>
 #include <ppapi/c/ppb_var.h>
+/*
 #include <ppapi/c/ppb_url_loader.h>
 #include <ppapi/c/ppb_url_request_info.h>
 #include <ppapi/c/ppb_url_response_info.h>
-#include <ppapi/c/pp_completion_callback.h>
 
+#include <ppapi/c/pp_completion_callback.h>
+*/
 #include "sqNaClWindow.h"
 
 static PP_Bool Instance_DidCreate(PP_Instance instance,
@@ -51,19 +53,22 @@ static struct PPB_Var_Deprecated* var_interface = NULL;
 static struct PPP_Class_Deprecated ppp_class;
 static PP_Module module_id = 0;
 const struct PPB_Instance* instance_;
+/*
 const struct PPB_URLLoader* loader_;
 const struct PPB_URLRequestInfo* requestInfo_;
 const struct PPB_URLResponseInfo* responseInfo_;
-const struct PPB_Var* var_;
+*/
 
+/*
 static PP_Resource loader = 0;
 static PP_Resource requestInfo = 0;
 static PP_Resource responseInfo = 0;
-
+*/
 static const char* const kPaintMethodId = "paint";
 static const char* const kGetStatusMethodId = "getStatus";
-static const char* const kGetLoaderStatusMethodId = "getLoaderStatus";
-struct PP_Var loader_status;
+/* static const char* const kGetLoaderStatusMethodId = "getLoaderStatus"; */
+static const char* const kLoadImageMethodId = "loadImage";
+/* struct PP_Var loader_status; */
 
 static struct PPP_Instance instance_interface = {
   &Instance_DidCreate,
@@ -75,6 +80,7 @@ static struct PPP_Instance instance_interface = {
   &Instance_GetInstanceObject,
 };
 
+#if 0
 static int32_t
 GetContentLength(struct PP_Var var)
 {
@@ -97,6 +103,7 @@ GetContentLength(struct PP_Var var)
   }
   return len;
 }
+#endif
 
 /**
  * Returns C string contained in the @a var or NULL if @a var is not string.
@@ -128,14 +135,25 @@ PP_Var StrToVar(const char* str)
   return PP_MakeUndefined();
 }
 
+void
+Paint()
+{
+  if (flush_display_requested) {
+    FlushPixelBuffer();
+    flush_display_requested = 0;
+  }
+}
+
 char *image_file_buffer = NULL;
 
+#if 0
 static void
 ReadCallback(void *user_data, int32_t result)
 {
   sprintf(LogBuffer, "read result: %d\n", (int)result);
   Log(LogBuffer);
-  pthread_create(&interpret_thread, NULL, runInterpret, NULL);
+  loader = 0;
+  /*pthread_create(&interpret_thread, NULL, runInterpret, NULL);*/
 }
 
 static struct PP_CompletionCallback ReadCompletionCallback = {ReadCallback, 0};
@@ -150,13 +168,30 @@ LoadCallback(void *user_data, int32_t result)
   sprintf(LogBuffer, "len: %d\n", (int)len);
   Log(LogBuffer);
   if (len > 0) {
-    image_file_buffer = malloc(len);
+    image_file_buffer = malloc(len+10);
     Log (image_file_buffer ? "file buffer allocated\n" : "allocation failed\n");
-    loader_->ReadResponseBody(loader, image_file_buffer, len, ReadCompletionCallback);
+    if (1) {
+      loader_->ReadResponseBody(loader, image_file_buffer, len+10, ReadCompletionCallback);
+      sprintf(LogBuffer, "read result: %d\n", (int)image_file_buffer[100000]);
+    }else 
+      loader = 0;
   }
 }
 
 static struct PP_CompletionCallback LoadCompletionCallback = {LoadCallback, 0};
+
+#endif
+
+struct PP_Var
+LoadImage(struct PP_Var data)
+{
+  const char *buf = VarToCStr(data);
+  sprintf(LogBuffer, "buf size %d\n", strlen(buf));
+  Log(LogBuffer);
+  return PP_MakeInt32(0);
+}
+
+
 
 static PP_Bool
 Instance_DidCreate(PP_Instance instance,
@@ -164,7 +199,8 @@ Instance_DidCreate(PP_Instance instance,
                                   const char* argn[],
                                   const char* argv[])
 {
-  if (1) {
+
+#if 0
     loader = loader_->Create(instance);
     requestInfo = requestInfo_->Create(instance);
     requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_URL, StrToVar("http://localhost:5103/squeak/Etoys.image"));
@@ -172,7 +208,7 @@ Instance_DidCreate(PP_Instance instance,
     loader_->Open(loader, requestInfo, LoadCompletionCallback);
     Log("loader open\n");
     return loader ? PP_TRUE : PP_FALSE;
-  }
+#endif
   return PP_TRUE;
 }
 
@@ -232,11 +268,14 @@ Squeak_HasMethod(void* object,
       return true;
     if (strcmp(method_name, kGetStatusMethodId) == 0)
       return true;
-    if (strcmp(method_name, kGetLoaderStatusMethodId) == 0)
+    /*    if (strcmp(method_name, kGetLoaderStatusMethodId) == 0)
+	  return true; */
+    if (strcmp(method_name, kLoadImageMethodId) == 0)
       return true;
   }
   return false;
 }
+
 
 /**
  * Invoke the function associated with @a name.
@@ -263,8 +302,13 @@ Squeak_Call(void* object,
     }
     if (strcmp(method_name, kGetStatusMethodId) == 0)
       return StrToVar(NaClStatus());
-    if (strcmp(method_name, kGetLoaderStatusMethodId) == 0)
-      return loader_status;
+    /*if (strcmp(method_name, kGetLoaderStatusMethodId) == 0)
+      return loader_status; */
+    if (strcmp(method_name, kLoadImageMethodId) == 0) {
+      sprintf(LogBuffer, "argc: %d\n", (int)argc);
+      Log(LogBuffer);
+      return LoadImage(argv[0]);
+    }
   }
   return v;
 }
@@ -283,14 +327,13 @@ PPP_InitializeModule(PP_Module a_module_id, PPB_GetInterface get_browser_interfa
   module_id = a_module_id;
   var_interface = 
       (struct PPB_Var_Deprecated*)(get_browser_interface(PPB_VAR_DEPRECATED_INTERFACE));
-  loader_ = (const struct PPB_URLLoader*)
+  /*  loader_ = (const struct PPB_URLLoader*)
     get_browser_interface(PPB_URLLOADER_INTERFACE);
   requestInfo_ = (const struct PPB_URLRequestInfo*)
     get_browser_interface(PPB_URLREQUESTINFO_INTERFACE);
   responseInfo_ = (const struct PPB_URLResponseInfo*)
     get_browser_interface(PPB_URLRESPONSEINFO_INTERFACE);
-  var_ = (const struct PPB_Var*)
-    get_browser_interface(PPB_VAR_INTERFACE);
+  */
   NaCl_InitializeModule(get_browser_interface);
   memset(&ppp_class, 0, sizeof(ppp_class));
   ppp_class.Call = Squeak_Call;

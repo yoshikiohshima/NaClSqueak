@@ -48,6 +48,8 @@
 char LogStatus[10000];
 char LogBuffer[1024];
 
+int flush_display_requested;
+
 static PP_Bool isContextValid();
 
 void
@@ -225,7 +227,7 @@ FlushCallback(void *user_data, int32_t result)
 
 static struct PP_CompletionCallback CompletionCallback = {FlushCallback, 0};
 
-static void
+void
 FlushPixelBuffer()
 {
   struct PP_Point top_left;
@@ -245,14 +247,6 @@ static PP_Bool
 isContextValid()
 {
   return gc != 0;
-}
-
-void
-Paint()
-{
-  /*  if (!flush_pending) {
-    FlushPixelBuffer();
-    }*/
 }
 
 void
@@ -450,9 +444,9 @@ static sqInt display_ioShowDisplay(sqInt dispBitsIndex, sqInt width, sqInt heigh
       }
     }
     image_data_->Unmap(image);
-    /*FlushPixelBuffer();*/
   }
   pthread_mutex_unlock(&image_mutex);
+  flush_display_requested = 1;
   return 0;
 }
 

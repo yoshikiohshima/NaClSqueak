@@ -1363,6 +1363,10 @@ void imgInit(void)
 #else
   sqImageFile f= nacl_fopen(imageName, "r");
   readImageFromFileHeapSize(f, 64 * 1024 * 1024);
+  extern usqInt *memory;
+  extern char *LogBuffer;
+  sprintf(LogBuffer, "%x, %x, %x %x\n", (unsigned int)memory[0], (unsigned int)memory[1], (unsigned int)memory[2], (unsigned int)memory[3]);
+  Log(LogBuffer);
   sqImageFileClose(f);
 #endif  
 }

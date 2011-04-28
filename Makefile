@@ -26,7 +26,7 @@ SQCFLAGS = -Wno-long-long -pthread -Wno-pragmas
 INCLUDES = -Isrc/vm -I. -Ivm -ICross/vm
 LDFLAGS = -lppruntime \
           -lpthread \
-          -lgoogle_nacl_platform \
+          -lplatform \
           -lgio \
           -lsrpc \
           $(ARCH_FLAGS)

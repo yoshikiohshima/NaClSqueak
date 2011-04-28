@@ -13,10 +13,22 @@
       var paintInterval = null;
       var statusInterval = null;
 
+      function loadSqueakImage() {
+        var req = new XMLHttpRequest();
+        req.open('GET', 'Etoys.image', false);
+        req.overrideMimeType('text/plain; charset=x-user-defined');
+        req.send(null);
+        if(req.status == 200) {
+           alert('buf size ' + req.responseText.length);
+           squeakModule.loadImage('abcde');
+        }
+      }
+
       function moduleDidLoad() {
         squeakModule = document.getElementById('squeak');
         paintInterval = setInterval("squeakModule.paint()", 50);
         statusInterval = setInterval("testStatus()", 500);
+        loadSqueakImage();
         getSqueakStatus();
       }
 
@@ -92,7 +104,6 @@
     <br />
   <form name="squeak_form" action="" method="get">
     <input type="button" value="Call getStatus()" onclick="getSqueakStatus()">
-    <input type="button" value="Call getLoaderStatus()" onclick="getLoaderStatus()">
     <input type="checkbox" id="status_checkbox"> Update status 
   </form>
 	<table>

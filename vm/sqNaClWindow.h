@@ -9,7 +9,7 @@ struct SqModule * nacl_display_module();
 struct SqModule * nacl_sound_module();
 
 extern int sqMain(int argc, char **argv, char **envp);
-void Paint();
+extern void FlushPixelBuffer();
 
 extern char LogBuffer[1024];
 void Log(char* message);
