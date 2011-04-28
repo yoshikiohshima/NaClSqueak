@@ -13,13 +13,13 @@ CROSSCFILES = sqVirtualMachine.c sqNamedPrims.c
 
 CFILES = squeak.c
 
-AR = $(NACL_SDK_ROOT)/toolchain/win_x86/bin/nacl-ar
-RANLIB = $(NACL_SDK_ROOT)/toolchain/win_x86/bin/nacl-ranlib
-
 NACL_SDK_ROOT = ../..
 
 # common.mk has rules to build .o files from .cc files.
 -include ../common.mk
+
+AR = $(NACL_SDK_ROOT)/$(NACL_TOOLCHAIN_DIR)/bin/nacl-ar
+RANLIB = $(NACL_SDK_ROOT)/$(NACL_TOOLCHAIN_DIR)/bin/nacl-ranlib
 
 CFLAGS = -Wall -Wno-long-long -pthread -Werror
 SQCFLAGS = -Wno-long-long -pthread -Wno-pragmas
