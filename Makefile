@@ -109,3 +109,9 @@ clean:
 # of the .nexe.  You do not need to call this target.
 install_prebuilt: squeak.nmf
 	-$(RM) $(OBJECTS_X86_32) $(OBJECTS_X86_64)
+
+
+Etoys.c:
+
+#  On the host environment, compile mkimage.c and then execute it with your faviorite Squeak image to produce Etoys.c
+

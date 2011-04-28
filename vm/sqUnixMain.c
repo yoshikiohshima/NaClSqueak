@@ -1512,7 +1512,6 @@ int sqMain(int argc, char **argv, char **envp)
   signal(SIGQUIT, sigquit);
 #endif
 
-  return 1;
   /* run Squeak */
   if (runInterpreter)
     interpret();

@@ -415,6 +415,8 @@ static sqInt display_ioForceDisplayUpdate(void)
 static sqInt display_ioShowDisplay(sqInt dispBitsIndex, sqInt width, sqInt height, sqInt depth,
 				   sqInt affectedL, sqInt affectedR, sqInt affectedT, sqInt affectedB)
 {
+  trace();
+  return 0;
   uint32_t *dispBits= pointerForOop(dispBitsIndex);
   uint32_t *pixels;
   int i, j;

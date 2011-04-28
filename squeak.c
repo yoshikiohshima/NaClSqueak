@@ -37,11 +37,8 @@ const struct PPB_Instance* instance_;
 
 static const char* const kPaintMethodId = "paint";
 static const char* const kGetStatusMethodId = "getStatus";
-/* static const char* const kGetLoaderStatusMethodId = "getLoaderStatus"; */
 static const char* const kLoadImageMethodId = "loadImage";
 static const char* const kSetImageSizeMethodId = "setImageSize";
-
-/* struct PP_Var loader_status; */
 
 static struct PPP_Instance instance_interface = {
   &Instance_DidCreate,
@@ -52,9 +49,6 @@ static struct PPP_Instance instance_interface = {
   NULL,  /* HandleDocumentLoad is not supported by NaCl modules. */
   &Instance_GetInstanceObject,
 };
-
-static char *m;
-static int32_t i;
 
 static int32_t
 GetInteger(struct PP_Var var)
@@ -177,11 +171,6 @@ PP_Var StrToVar(const char* str)
 void
 Paint()
 {
-  if (m) {
-    sprintf(LogBuffer, "%s %d\n", (char*)m, (int)i);
-    Log(LogBuffer);
-    m = NULL;
-  }
   if (flush_display_requested) {
     FlushPixelBuffer();
     flush_display_requested = 0;
@@ -230,14 +219,6 @@ LoadCallback(void *user_data, int32_t result)
 static struct PP_CompletionCallback LoadCompletionCallback = {LoadCallback, 0};
 
 #endif
-
-
-void
-MainLog(char *message, int32_t a)
-{
-  m = message;
-  i = a;
-}
 
 struct PP_Var
 SetImageSize(struct PP_Var data)

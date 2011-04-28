@@ -6,6 +6,8 @@
 #include "sq.h"
 #include <setjmp.h>
 
+#include "sqNaClWindow.h"
+
 #ifndef allocateMemoryMinimumImageFileHeaderSize
  /* Called by Interpreter>>allocateMemory:minimum:imageFile:headerSize: */
  /* Default definition if not previously defined in config.h */
@@ -6361,6 +6363,7 @@ register struct foo * foo = &fum;
     char* localSP;
     char* localIP;
     sqInt currentBytecode;
+    int bytecodeCount = 0;
 
 	browserPluginInitialiseIfNeeded();
 	initializeImageFormatVersionIfNeeded();
@@ -6370,7 +6373,11 @@ register struct foo * foo = &fum;
 	localHomeContext = foo->theHomeContext;
 	/* begin fetchNextBytecode */
 	currentBytecode = byteAtPointer(++localIP);
+	sprintf(LogBuffer, "%x, %x\n", localIP, localSP);
+	Log(LogBuffer);
+	
 	while (1) {
+	  if (bytecodeCount++ > 15000) return;
 		switch (currentBytecode) {
 		case 0:
 			/* pushReceiverVariableBytecode */
