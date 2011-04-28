@@ -27,21 +27,6 @@
 #include <pthread.h>
 /* #include <sys/time.h> */
 
-#include <ppapi/c/pp_module.h>
-#include <ppapi/c/ppb.h>
-#include <ppapi/c/ppb_instance.h>
-#include <ppapi/c/ppp.h>
-#include <ppapi/c/ppp_instance.h>
-#include <ppapi/c/pp_size.h>
-#include <ppapi/c/pp_rect.h>
-#include <ppapi/c/pp_point.h>
-#include <ppapi/c/ppb_image_data.h>
-#include <ppapi/c/ppb_graphics_2d.h>
-#include <ppapi/c/ppb_graphics_2d.h>
-#include <ppapi/c/ppb_core.h>
-#include <ppapi/c/pp_input_event.h>
-#include <ppapi/c/pp_completion_callback.h>
-
 #include "sqUnixEvent.c"		/* see X11 and/or Quartz drivers for examples */
 #include "sqNaClWindow.h"
 
@@ -273,6 +258,7 @@ NaCl_HandleInputEvent(PP_Instance instance,
     case PP_INPUTEVENT_MOUSEBUTTON_NONE: case PP_INPUTEVENT_MOUSEBUTTON_LEFT: case PP_INPUTEVENT_MOUSEBUTTON_MIDDLE: case PP_INPUTEVENT_MOUSEBUTTON_RIGHT:
       buttonState |= nacl2sqButton(evt->u.mouse.button);
       recordMouseEvent();
+      Log("mouse down\n");
       break;
     }
     return PP_TRUE;

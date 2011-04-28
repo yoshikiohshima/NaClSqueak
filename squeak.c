@@ -5,32 +5,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
 #include <sys/time.h>
 
 #include <ppapi/c/dev/ppb_var_deprecated.h>
 #include <ppapi/c/dev/ppp_class_deprecated.h>
 #include <ppapi/c/pp_errors.h>
 #include <ppapi/c/pp_var.h>
-#include <ppapi/c/pp_module.h>
-#include <ppapi/c/ppb.h>
-#include <ppapi/c/ppb_instance.h>
-#include <ppapi/c/ppp.h>
-#include <ppapi/c/ppp_instance.h>
-#include <ppapi/c/pp_size.h>
-#include <ppapi/c/pp_rect.h>
-#include <ppapi/c/pp_point.h>
-#include <ppapi/c/ppb_image_data.h>
-#include <ppapi/c/ppb_graphics_2d.h>
-#include <ppapi/c/ppb_core.h>
 #include <ppapi/c/ppb_var.h>
-/*
-#include <ppapi/c/ppb_url_loader.h>
-#include <ppapi/c/ppb_url_request_info.h>
-#include <ppapi/c/ppb_url_response_info.h>
-
-#include <ppapi/c/pp_completion_callback.h>
-*/
 #include "sqNaClWindow.h"
 
 static PP_Bool Instance_DidCreate(PP_Instance instance,
@@ -53,17 +34,7 @@ static struct PPB_Var_Deprecated* var_interface = NULL;
 static struct PPP_Class_Deprecated ppp_class;
 static PP_Module module_id = 0;
 const struct PPB_Instance* instance_;
-/*
-const struct PPB_URLLoader* loader_;
-const struct PPB_URLRequestInfo* requestInfo_;
-const struct PPB_URLResponseInfo* responseInfo_;
-*/
 
-/*
-static PP_Resource loader = 0;
-static PP_Resource requestInfo = 0;
-static PP_Resource responseInfo = 0;
-*/
 static const char* const kPaintMethodId = "paint";
 static const char* const kGetStatusMethodId = "getStatus";
 /* static const char* const kGetLoaderStatusMethodId = "getLoaderStatus"; */
@@ -81,6 +52,9 @@ static struct PPP_Instance instance_interface = {
   NULL,  /* HandleDocumentLoad is not supported by NaCl modules. */
   &Instance_GetInstanceObject,
 };
+
+static char *m;
+static int32_t i;
 
 static int32_t
 GetInteger(struct PP_Var var)
@@ -203,14 +177,22 @@ PP_Var StrToVar(const char* str)
 void
 Paint()
 {
+  if (m) {
+    sprintf(LogBuffer, "%s %d\n", (char*)m, (int)i);
+    Log(LogBuffer);
+    m = NULL;
+  }
   if (flush_display_requested) {
     FlushPixelBuffer();
     flush_display_requested = 0;
   }
 }
 
-char *image_file_buffer = NULL;
-static int32_t image_file_size = 0;
+extern unsigned char default_image_file_buffer[];
+extern int32_t default_image_file_size;
+
+unsigned char *image_file_buffer = NULL;
+int32_t image_file_size;
 static int32_t image_file_index = 0;
 
 #if 0
@@ -220,7 +202,7 @@ ReadCallback(void *user_data, int32_t result)
   sprintf(LogBuffer, "read result: %d\n", (int)result);
   Log(LogBuffer);
   loader = 0;
-  /*pthread_create(&interpret_thread, NULL, runInterpret, NULL);*/
+  pthread_create(&interpret_thread, NULL, runInterpret, NULL);
 }
 
 static struct PP_CompletionCallback ReadCompletionCallback = {ReadCallback, 0};
@@ -249,24 +231,49 @@ static struct PP_CompletionCallback LoadCompletionCallback = {LoadCallback, 0};
 
 #endif
 
+
+void
+MainLog(char *message, int32_t a)
+{
+  m = message;
+  i = a;
+}
+
 struct PP_Var
 SetImageSize(struct PP_Var data)
 {
   image_file_size = GetInteger(data);
   sprintf(LogBuffer, "set size %d\n", (int)image_file_size);
   Log(LogBuffer);
-  image_file_buffer = malloc(image_file_size);
+  /*
+  if ((image_file_buffer = malloc(image_file_size)) == NULL) {
+    Log("malloc failed\n");
+  }
   image_file_index = 0;
+  */
   return PP_MakeInt32(image_file_size);
 }
 
 struct PP_Var
-LoadImage(struct PP_Var data)
+LoadImage()
 {
+  Log("load image\n");
+  image_file_buffer = default_image_file_buffer;
+  image_file_size = default_image_file_size;
+  sprintf(LogBuffer, "%x %d\n", (unsigned int)image_file_buffer, (int)image_file_size);
+  Log(LogBuffer);
+  pthread_create(&interpret_thread, NULL, runInterpret, NULL);
+
+#if 0
+  if (image_file_index > 8000000) {
+    return PP_MakeInt32(image_file_index);
+  }
   const char *buf = VarToCStr(data);
   sprintf(LogBuffer, "buf size %d\n", (int)strlen(buf));
   Log(LogBuffer);
-  image_file_index = decode((char*)buf, strlen(buf), image_file_buffer, image_file_index);
+  image_file_index = decode((char*)buf, strlen(buf), (char*)image_file_buffer, image_file_index);
+  sprintf(LogBuffer, "file_index %d\n", (int)image_file_index);
+  Log(LogBuffer);
   if (image_file_index == image_file_size) {
     if (0) {
       int i = image_file_size - 10000;
@@ -280,6 +287,7 @@ LoadImage(struct PP_Var data)
       Log("}");
     }
   }
+#endif
   return PP_MakeInt32(image_file_index);
 }
 
@@ -289,7 +297,7 @@ Instance_DidCreate(PP_Instance instance,
                                   const char* argn[],
                                   const char* argv[])
 {
-
+  Log("did create\n");
 #if 0
     loader = loader_->Create(instance);
     requestInfo = requestInfo_->Create(instance);
@@ -397,7 +405,7 @@ Squeak_Call(void* object,
     /*if (strcmp(method_name, kGetLoaderStatusMethodId) == 0)
       return loader_status; */
     if (strcmp(method_name, kLoadImageMethodId) == 0) {
-      return LoadImage(argv[0]);
+      return LoadImage();
     }
     if (strcmp(method_name, kSetImageSizeMethodId) == 0) {
       return SetImageSize(argv[0]);

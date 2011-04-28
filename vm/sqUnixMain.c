@@ -63,6 +63,10 @@
 # include <sys/proc.h>
 #endif
 
+#ifdef NACL
+#include "sqNaClWindow.h"
+#endif
+
 #undef	DEBUG_MODULES
 
 #undef	IMAGE_DUMP				/* define to enable SIGHUP and SIGQUIT handling */
@@ -215,7 +219,7 @@ sqLong ioMicroSeconds(void)
 }
 
 /* implementation of ioUtcWithOffset(), defined in config.h to
-/* override default definition in src/vm/interp.h
+   override default definition in src/vm/interp.h
  */
 #ifndef NACL
 sqInt sqUnixUtcWithOffset(sqLong *microSeconds, int *offset)
@@ -1361,13 +1365,11 @@ void imgInit(void)
       break;
     }
 #else
-  sqImageFile f= nacl_fopen(imageName, "r");
-  readImageFromFileHeapSize(f, 64 * 1024 * 1024);
-  extern usqInt *memory;
-  extern char *LogBuffer;
-  sprintf(LogBuffer, "%x, %x, %x %x\n", (unsigned int)memory[0], (unsigned int)memory[1], (unsigned int)memory[2], (unsigned int)memory[3]);
-  Log(LogBuffer);
+  Log("imgInit\n");
+  sqImageFile f= nacl_fopen("foo", "r");
+  readImageFromFileHeapSize(f, 18 * 1024 * 1024);
   sqImageFileClose(f);
+  Log("imgInit end\n");
 #endif  
 }
 
@@ -1476,6 +1478,7 @@ int sqMain(int argc, char **argv, char **envp)
   initTimers();
   /*aioInit(); */
   dpy->winInit();
+
   imgInit();
   dpy->winOpen();
 
@@ -1510,7 +1513,6 @@ int sqMain(int argc, char **argv, char **envp)
 #endif
 
   return 1;
-
   /* run Squeak */
   if (runInterpreter)
     interpret();
@@ -1637,7 +1639,7 @@ unlink(const char *pathname)
 int
 nacl_fclose(sqImageFile f)
 {
-  free(f->buffer);
+  /*free(f->buffer); */
   f->buffer = NULL;
   f->index = 0;
   return 0;
@@ -1647,7 +1649,7 @@ sqImageFile
 nacl_fopen(char *fileName, char* mode)
 {
   static struct NaClFile nf;
-  extern char *image_file_buffer;
+  extern unsigned char *image_file_buffer;
   nf.buffer = image_file_buffer;
   nf.index = 0;
   return &nf;
@@ -1662,7 +1664,7 @@ nacl_ftell(sqImageFile f)
 size_t
 nacl_fread(void *ptr, size_t sz, size_t count, sqImageFile f)
 {
-  memcpy(ptr, f->buffer, sz * count);
+  memcpy(ptr, f->buffer + f->index, sz * count);
   f->index += sz * count;
   return count;
 }
