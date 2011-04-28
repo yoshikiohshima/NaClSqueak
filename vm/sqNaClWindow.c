@@ -45,8 +45,8 @@
 #include "sqUnixEvent.c"		/* see X11 and/or Quartz drivers for examples */
 #include "sqNaClWindow.h"
 
-char LogStatus[10000];
-char LogBuffer[1024];
+char LogStatus[100000];
+char LogBuffer[10240];
 
 int flush_display_requested;
 

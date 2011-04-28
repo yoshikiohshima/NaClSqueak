@@ -126,7 +126,7 @@ decode(char *input, int input_size, char *output, int output_index)
 	  v = (unsigned char)((v == '$') ? 0 : v - 61);
 	}
       }
-      if (s < input_size) {
+      if (s <= input_size) {
 	len++;
 	if (v) {
 	  in[i] = (unsigned char)(v - 1);
@@ -266,9 +266,20 @@ LoadImage(struct PP_Var data)
   const char *buf = VarToCStr(data);
   sprintf(LogBuffer, "buf size %d\n", (int)strlen(buf));
   Log(LogBuffer);
-  decode((char*)buf, strlen(buf), image_file_buffer, image_file_index);
-  sprintf(LogBuffer, "buf pointer %d\n", (int)image_file_index);
-  Log(LogBuffer);
+  image_file_index = decode((char*)buf, strlen(buf), image_file_buffer, image_file_index);
+  if (image_file_index == image_file_size) {
+    if (0) {
+      int i = image_file_size - 10000;
+      Log("{");
+      while (i < (image_file_size)) {
+	sprintf(LogBuffer, "%d", (unsigned int)image_file_buffer[i++]);
+	Log(LogBuffer);
+	if (i < image_file_size) Log(",");
+	if (i % 20 == 0) Log("\n");
+      }
+      Log("}");
+    }
+  }
   return PP_MakeInt32(image_file_index);
 }
 

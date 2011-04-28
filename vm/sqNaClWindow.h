@@ -11,7 +11,7 @@ struct SqModule * nacl_sound_module();
 extern int sqMain(int argc, char **argv, char **envp);
 extern void FlushPixelBuffer();
 
-extern char LogBuffer[1024];
+extern char LogBuffer[];
 void Log(char* message);
 char *NaClStatus();
 
