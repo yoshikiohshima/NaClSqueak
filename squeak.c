@@ -244,7 +244,6 @@ LoadImage()
   sprintf(LogBuffer, "%x %d\n", (unsigned int)image_file_buffer, (int)image_file_size);
   Log(LogBuffer);
   pthread_create(&interpret_thread, NULL, runInterpret, NULL);
-
 #if 0
   if (image_file_index > 8000000) {
     return PP_MakeInt32(image_file_index);

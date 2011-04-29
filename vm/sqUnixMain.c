@@ -1529,7 +1529,7 @@ int sqMain(int argc, char **argv, char **envp)
 sqInt ioExit(void)
 {
   dpy->winExit();
-  exit(0);
+  toQuit = true;
 }
 
 #if defined(DARWIN)

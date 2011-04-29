@@ -8,7 +8,7 @@
 
 PYTHON = python
 
-SQCFILES = sqUnixMain.c sqNaClWindow.c sqNaClSound.c sqUnixMemory.c sqUnixCharConv.c sqUnixExternalPrims.c osExports.c
+SQCFILES = sqUnixMain.c sqNaClWindow.c sqNaClSound.c sqNaClFile.c sqUnixMemory.c sqUnixCharConv.c sqUnixExternalPrims.c osExports.c
 CROSSCFILES = sqVirtualMachine.c sqNamedPrims.c 
 
 CFILES = squeak.c Etoys.c
@@ -22,7 +22,7 @@ AR = $(NACL_SDK_ROOT)/$(NACL_TOOLCHAIN_DIR)/bin/nacl-ar
 RANLIB = $(NACL_SDK_ROOT)/$(NACL_TOOLCHAIN_DIR)/bin/nacl-ranlib
 
 CFLAGS = -Wall -Wno-long-long -pthread -Werror
-SQCFLAGS = -Wno-long-long -pthread -Wno-pragmas
+SQCFLAGS = -Wno-long-long -pthread -Wno-pragmas -DNO_STD_FILE_SUPPORT
 INCLUDES = -Isrc/vm -I. -Ivm -ICross/vm
 LDFLAGS = -lppruntime \
           -lpthread \

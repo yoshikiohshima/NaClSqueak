@@ -6377,7 +6377,7 @@ register struct foo * foo = &fum;
 	Log(LogBuffer);
 	
 	while (1) {
-	  if (bytecodeCount++ > 15000) return;
+	  if (bytecodeCount++ > 17250) return;
 		switch (currentBytecode) {
 		case 0:
 			/* pushReceiverVariableBytecode */
@@ -9192,8 +9192,12 @@ register struct foo * foo = &fum;
 				sqInt valuePointer;
 				sqInt valuePointer1;
 				sqInt tmp;
+				int logLen;
 				/* begin internalFindNewMethod */
 				/* begin lookupInMethodCacheSel:class: */
+				logLen = (20 < stSizeOf(foo->messageSelector) ? 20 : stSizeOf(foo->messageSelector) + 1);
+				snprintf(LogBuffer, logLen + 6, "\nsel: %s", firstIndexableField(foo->messageSelector));
+				Log(LogBuffer);
 				hash = foo->messageSelector ^ foo->lkupClass;
 				probe = hash & MethodCacheMask;
 				if (((foo->methodCache[probe + MethodCacheSelector]) == foo->messageSelector) && ((foo->methodCache[probe + MethodCacheClass]) == foo->lkupClass)) {

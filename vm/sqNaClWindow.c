@@ -416,13 +416,13 @@ static sqInt display_ioShowDisplay(sqInt dispBitsIndex, sqInt width, sqInt heigh
 				   sqInt affectedL, sqInt affectedR, sqInt affectedT, sqInt affectedB)
 {
   trace();
+  if (toQuit) {
+    pthread_exit(NULL);
+  }
   return 0;
   uint32_t *dispBits= pointerForOop(dispBitsIndex);
   uint32_t *pixels;
   int i, j;
-  if (toQuit) {
-    pthread_exit(NULL);
-  }
   pthread_mutex_lock(&image_mutex);
   if (isContextValid()) {
     pixels = image_data_->Map(image);
