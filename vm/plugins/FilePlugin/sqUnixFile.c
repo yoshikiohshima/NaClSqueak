@@ -32,7 +32,9 @@
 
 #include "sq.h"
 #include "FilePlugin.h"
-#include "sqUnixCharConv.h"
+/*#include "sqUnixCharConv.h"*/
+#include "sqNaClWindow.h"
+#define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__)
 
 #ifdef HAVE_DIRENT_H
 # include <dirent.h>
@@ -103,6 +105,7 @@ sqInt dir_Create(char *pathString, sqInt pathStringLength)
     return false;
   return mkdir(name, 0777) == 0;	/* rwxrwxrwx & ~umask */
 #else 
+  trace();
   return false;
 #endif
 }
@@ -127,6 +130,7 @@ sqInt dir_Delete(char *pathString, sqInt pathStringLength)
     }
   return rmdir(name) == 0;
 #else
+  trace();
   return false;
 #endif
 }
@@ -134,6 +138,7 @@ sqInt dir_Delete(char *pathString, sqInt pathStringLength)
 
 sqInt dir_Delimitor(void)
 {
+  trace();
   return DELIMITER;
 }
 
@@ -159,6 +164,7 @@ static int maybeOpenDir(char *unixPath)
     }
   return true;
 #else
+  trace();
   return false;
 #endif
 }
@@ -257,6 +263,7 @@ sqInt dir_Lookup(char *pathString, sqInt pathStringLength, sqInt index,
 
   return ENTRY_FOUND;
 #else
+  trace();
   return BAD_PATH;
 #endif
 }

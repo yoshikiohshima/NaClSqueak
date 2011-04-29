@@ -8,7 +8,7 @@
 
 PYTHON = python
 
-SQCFILES = sqUnixMain.c sqNaClWindow.c sqNaClSound.c sqNaClFile.c sqUnixMemory.c sqUnixCharConv.c sqUnixExternalPrims.c osExports.c
+SQCFILES = sqUnixMain.c sqNaClWindow.c sqNaClSound.c sqNaClFile.c sqUnixMemory.c sqUnixExternalPrims.c osExports.c
 CROSSCFILES = sqVirtualMachine.c sqNamedPrims.c 
 
 CFILES = squeak.c Etoys.c

@@ -35,7 +35,7 @@
 #ifndef NACL
 #include "sqaio.h"
 #endif
-#include "sqUnixCharConv.h"
+/*#include "sqUnixCharConv.h" */
 #include "debug.h"
 
 #ifdef ioMSecs
@@ -66,6 +66,8 @@
 #ifdef NACL
 #include "sqNaClWindow.h"
 #endif
+
+#define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__)
 
 #undef	DEBUG_MODULES
 
@@ -1003,19 +1005,23 @@ static int jitArgs(char *str)
 # include <locale.h>
 static void vm_parseEnvironment(void)
 {
+#ifndef NACL
   char *ev= setlocale(LC_CTYPE, "");
   if (ev)
     setLocaleEncoding(ev);
   else
     fprintf(stderr, "setlocale() failed (check values of LC_CTYPE, LANG and LC_ALL)\n");
-
+#endif
   if (documentName)
     strcpy(shortImageName, documentName);
+#ifndef NACL
   else if ((ev= getenv("SQUEAK_IMAGE")))
     strcpy(shortImageName, ev);
+#endif
   else
     strcpy(shortImageName, "squeak.image");
 
+#ifndef NACL
   if ((ev= getenv("SQUEAK_MEMORY")))	extraMemory= strtobkm(ev);
   if ((ev= getenv("SQUEAK_MMAP")))	useMmap= strtobkm(ev);
   if ((ev= getenv("SQUEAK_PLUGINS")))	squeakPlugins= strdup(ev);
@@ -1028,7 +1034,6 @@ static void vm_parseEnvironment(void)
   if ((ev= getenv("SQUEAK_PATHENC")))	setEncoding(&uxPathEncoding, ev);
   if ((ev= getenv("SQUEAK_TEXTENC")))	setEncoding(&uxTextEncoding, ev);
 
-#ifndef NACL
   if ((ev= getenv("SQUEAK_VM")))	requireModulesNamed(ev);
 #endif
 }
@@ -1424,7 +1429,7 @@ int sqMain(int argc, char **argv, char **envp)
   if ((squeakArgVec= calloc(argc + 1, sizeof(char *))) == 0)
     outOfMemory();
 
-  /*  signal(SIGSEGV, sigsegv);*/
+  signal(SIGSEGV, sigsegv);
 
 #if defined(__alpha__) && defined(__osf__)
   /* disable printing of unaligned access exceptions */
@@ -1516,10 +1521,10 @@ int sqMain(int argc, char **argv, char **envp)
   if (runInterpreter)
     interpret();
 
+#ifndef NACL
   /* we need these, even if not referenced from main executable */
   (void)sq2uxPath;
   (void)ux2sqPath;
-#ifndef NACL
   sqDebugAnchor();
 #endif
   
@@ -1549,10 +1554,11 @@ sqInt sqGetFilenameFromString(char *aCharBuffer, char *aFilenameString, sqInt fi
   int numLinks= 0;
   struct stat st;
 
-  sq2uxPath(aFilenameString, filenameLength, aCharBuffer, MAXPATHLEN, 1);
 #ifdef NACL
+  memcpy(aCharBuffer, aFilenameString, filenameLength+1);
   return 0;
 #else 
+  sq2uxPath(aFilenameString, filenameLength, aCharBuffer, MAXPATHLEN, 1);
   if (resolveAlias)
     for (;;)	/* aCharBuffer might refer to link or alias */
       {
@@ -1624,6 +1630,13 @@ sqInt ioGatherEntropy(char *buffer, sqInt bufSize)
 
 #ifdef NACL
 int
+kill(pid_t pid, int sig)
+{
+  return -1;
+}
+
+
+int
 link(const char *old, const char *new)
 {
   return -1;
@@ -1647,6 +1660,7 @@ nacl_fclose(sqImageFile f)
 sqImageFile
 nacl_fopen(char *fileName, char* mode)
 {
+  trace();
   static struct NaClFile nf;
   extern unsigned char *image_file_buffer;
   nf.buffer = image_file_buffer;

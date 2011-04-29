@@ -16,7 +16,7 @@
 
 #include "sqUnixMain.h"
 #include "sqUnixGlobals.h"
-#include "sqUnixCharConv.h"		/* not required, but probably useful */
+/*#include "sqUnixCharConv.h"*/		/* not required, but probably useful */
 /*#include "aio.h"*/			/* ditto */
 
 #include "SqDisplay.h"
@@ -118,8 +118,8 @@ static int nacl2sqModifier(uint32_t state)
   return mods;
 }
 
-/*#define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__) */
-#define trace() do {sprintf(LogBuffer, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__); Log(LogBuffer);} while(0)
+#define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__)
+/*#define trace() do {sprintf(LogBuffer, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__); Log(LogBuffer);} while(0) */
 
 static void
 noteMouseEventPosition(const struct PP_InputEvent_Mouse *evt)
@@ -441,7 +441,7 @@ static sqInt display_ioShowDisplay(sqInt dispBitsIndex, sqInt width, sqInt heigh
 static sqInt display_ioHasDisplayDepth(sqInt i)
 {
   trace();
-  return 32 == i;
+  return 32 == i || 16 == i;
 }
 
 static sqInt display_ioSetDisplayMode(sqInt width, sqInt height, sqInt depth, sqInt fullscreenFlag)
