@@ -120,9 +120,6 @@
   </head>
     <body id="bodyId" onunload="pageDidUnload()">
     <h1>Squeak Test</h1>
-    <p>
-      A small graphics test.
-    </p>
     <!-- Load the published .nexe.  This includes the 'nacl' attribute which
     shows how to load multi-architecture modules.  Each entry in the "nexes"
     object in the .nmf manifest file is a key-value pair: the key is the
@@ -135,7 +132,7 @@
     -->
     <embed name="nacl_module"
            id="squeak"
-           width=640 height=480
+           width=800 height=600
            nacl="squeak.nmf"
            type="application/x-nacl"
            dimensions="2"
@@ -148,7 +145,7 @@
   </form>
 	<table>
 		<tr>
-			<td style="width: 600px; height: 300px;">
+			<td style="width: 600px; height: 200px;">
 				<pre id="status_field" style="width: 100%; height: 100%; overflow:scroll;">NO-STATUS</pre>
 			</td>
 		</tr>

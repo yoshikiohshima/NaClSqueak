@@ -386,7 +386,7 @@ static sqInt display_ioScreenDepth(void)
 static sqInt display_ioScreenSize(void)
 {
   trace();
-  return (600 << 16) | 400;
+  return (screenWidth << 16) | screenHeight;
 }
 
 static sqInt display_ioSetCursorWithMask(sqInt cursorBitsIndex, sqInt cursorMaskIndex, sqInt offsetX, sqInt offsetY)
