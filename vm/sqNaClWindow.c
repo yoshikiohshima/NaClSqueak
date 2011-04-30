@@ -27,8 +27,8 @@
 #include <pthread.h>
 /* #include <sys/time.h> */
 
-#include "sqUnixEvent.c"		/* see X11 and/or Quartz drivers for examples */
 #include "sqNaClWindow.h"
+#include "sqUnixEvent.c"		/* see X11 and/or Quartz drivers for examples */
 
 char LogStatus[100000];
 char LogBuffer[10240];
@@ -265,9 +265,10 @@ NaCl_HandleInputEvent(PP_Instance instance,
   case PP_INPUTEVENT_TYPE_MOUSEUP:
     noteMouseEventState(&evt->u.mouse);
     switch (evt->u.mouse.button) {
-    case 1: case 2: case 3:
+    case PP_INPUTEVENT_MOUSEBUTTON_NONE: case PP_INPUTEVENT_MOUSEBUTTON_LEFT: case PP_INPUTEVENT_MOUSEBUTTON_MIDDLE: case PP_INPUTEVENT_MOUSEBUTTON_RIGHT:
       buttonState &= ~nacl2sqButton(evt->u.mouse.button);
       recordMouseEvent();
+      Log("mouse up\n");
       break;
     }
     return PP_TRUE;
@@ -419,7 +420,7 @@ static sqInt display_ioShowDisplay(sqInt dispBitsIndex, sqInt width, sqInt heigh
   if (toQuit) {
     pthread_exit(NULL);
   }
-  uint32_t *dispBits= pointerForOop(dispBitsIndex);
+  uint32_t *dispBits= (uint32_t*)pointerForOop(dispBitsIndex);
   uint32_t *pixels;
   int i, j;
   pthread_mutex_lock(&image_mutex);
