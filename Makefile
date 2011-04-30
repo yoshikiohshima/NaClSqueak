@@ -30,7 +30,6 @@ LDFLAGS = -lppruntime \
           -lgio \
           -lsrpc \
           $(ARCH_FLAGS)
-OPT_FLAGS = -O2
 
 LOCALSQCFILES = $(notdir $(SQCFILES))
 LOCALCROSSCFILES = $(notdir $(CROSSCFILES))
