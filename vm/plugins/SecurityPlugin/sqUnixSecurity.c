@@ -240,6 +240,10 @@ sqInt ioInitSecurity(void)
   int imagePathLen= strrchr(imageName, '/') - imageName;
   char *directory= 0;
 
+#ifdef NACL
+  return 0;
+#endif
+
   /* establish the secure user directory */
   directory= getenv("SQUEAK_SECUREDIR");
   if (0 == directory)

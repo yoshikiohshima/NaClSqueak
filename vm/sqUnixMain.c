@@ -67,8 +67,6 @@
 #include "sqNaClWindow.h"
 #endif
 
-#define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__)
-
 #undef	DEBUG_MODULES
 
 #undef	IMAGE_DUMP				/* define to enable SIGHUP and SIGQUIT handling */
@@ -97,7 +95,7 @@ static char **squeakArgVec=	0;
 static int    extraMemory=	0;
        int    useMmap=		DefaultMmapSize * 1024 * 1024;
 
-static int    useItimer=	1;	/* 0 to disable itimer-based clock */
+static int    useItimer=	0;	/* 0 to disable itimer-based clock */
        int    noEvents=		0;	/* 1 to disable new event handling */
        int    noSoundMixer=	0;	/* 1 to disable writing sound mixer levels */
        char  *squeakPlugins=	0;	/* plugin path */
@@ -312,6 +310,7 @@ static void recordFullPathForVmName(const char *localVmName)
   }
 #else
   localVmName= "naclsqueak";
+  strcpy(vmPath, "/");
 #endif
 }
 
@@ -331,6 +330,7 @@ static void recordFullPathForImageName(const char *localImageName)
 
 sqInt imageNameSize(void)
 {
+  trace();
   return strlen(imageName);
 }
 
@@ -339,6 +339,7 @@ sqInt imageNameGetLength(sqInt sqImageNameIndex, sqInt length)
   char *sqImageName= pointerForOop(sqImageNameIndex);
   int count, i;
 
+  trace();
   count= strlen(imageName);
   count= (length < count) ? length : count;
 
@@ -370,6 +371,7 @@ sqInt imageNamePutLength(sqInt sqImageNameIndex, sqInt length)
 
 char *getImageName(void)
 {
+  trace();
   return imageName;
 }
 
@@ -379,6 +381,7 @@ char *getImageName(void)
 
 sqInt vmPathSize(void)
 {
+  trace();
   return strlen(vmPath);
 }
 
@@ -394,6 +397,8 @@ sqInt vmPathGetLength(sqInt sqVMPathIndex, sqInt length)
   for (i= 0; i < count; i++)
     stVMPath[i]= vmPath[i];
 
+  trace();
+  fprintf(stderr, "count %d\n", (int)count);
   return count;
 }
 
@@ -431,6 +436,8 @@ sqInt ioDisablePowerManager(sqInt disableIfNonZero)
 
 static char *getAttribute(sqInt id)
 {
+  trace();
+  fprintf(stderr, "id %d\n", (int)id);
   if (id < 0)	/* VM argument */
     {
       if (-id  < vmArgCnt)
@@ -1697,4 +1704,4 @@ nacl_fwrite(void *ptr, size_t sz, size_t count, sqImageFile f)
   return count;
 }
 #endif
-
+   
