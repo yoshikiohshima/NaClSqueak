@@ -1,12 +1,10 @@
-/* Automatically generated from Squeak on 26 April 2011 1:21:59 pm 
+/* Automatically generated from Squeak on 30 April 2011 12:37:17 am 
    by VMMaker 4.4.7
  */
 #define SQ_USE_GLOBAL_STRUCT 1
 
 #include "sq.h"
 #include <setjmp.h>
-
-#include "sqNaClWindow.h"
 
 #ifndef allocateMemoryMinimumImageFileHeaderSize
  /* Called by Interpreter>>allocateMemory:minimum:imageFile:headerSize: */
@@ -6363,7 +6361,6 @@ register struct foo * foo = &fum;
     char* localSP;
     char* localIP;
     sqInt currentBytecode;
-    int bytecodeCount = 0;
 
 	browserPluginInitialiseIfNeeded();
 	initializeImageFormatVersionIfNeeded();
@@ -6373,11 +6370,7 @@ register struct foo * foo = &fum;
 	localHomeContext = foo->theHomeContext;
 	/* begin fetchNextBytecode */
 	currentBytecode = byteAtPointer(++localIP);
-	sprintf(LogBuffer, "%x, %x\n", localIP, localSP);
-	Log(LogBuffer);
-	
 	while (1) {
-	  if (bytecodeCount++ > 17250) return;
 		switch (currentBytecode) {
 		case 0:
 			/* pushReceiverVariableBytecode */
@@ -9192,12 +9185,8 @@ register struct foo * foo = &fum;
 				sqInt valuePointer;
 				sqInt valuePointer1;
 				sqInt tmp;
-				int logLen;
 				/* begin internalFindNewMethod */
 				/* begin lookupInMethodCacheSel:class: */
-				logLen = (20 < stSizeOf(foo->messageSelector) ? 20 : stSizeOf(foo->messageSelector) + 1);
-				snprintf(LogBuffer, logLen + 6, "\nsel: %s", firstIndexableField(foo->messageSelector));
-				Log(LogBuffer);
 				hash = foo->messageSelector ^ foo->lkupClass;
 				probe = hash & MethodCacheMask;
 				if (((foo->methodCache[probe + MethodCacheSelector]) == foo->messageSelector) && ((foo->methodCache[probe + MethodCacheClass]) == foo->lkupClass)) {

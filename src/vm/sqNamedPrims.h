@@ -1,4 +1,4 @@
-/* Automatically generated from Squeak on 26 April 2011 3:36:15 pm 
+/* Automatically generated from Squeak on 30 April 2011 12:37:20 am 
    by VMMaker 4.4.7
  */
 /* This is an automatically generated table of all builtin modules in the VM */
@@ -23,7 +23,6 @@ extern sqExport Klatt_exports[];
 extern sqExport LargeIntegers_exports[];
 extern sqExport Matrix2x3Plugin_exports[];
 extern sqExport MiscPrimitivePlugin_exports[];
-extern sqExport SecurityPlugin_exports[];
 extern sqExport SoundCodecPrims_exports[];
 extern sqExport SoundGenerationPlugin_exports[];
 extern sqExport SoundPlugin_exports[];
@@ -50,7 +49,6 @@ sqExport *pluginExports[] = {
 	LargeIntegers_exports,
 	Matrix2x3Plugin_exports,
 	MiscPrimitivePlugin_exports,
-	SecurityPlugin_exports,
 	SoundCodecPrims_exports,
 	SoundGenerationPlugin_exports,
 	SoundPlugin_exports,

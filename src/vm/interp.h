@@ -1,4 +1,4 @@
-/* Automatically generated from Squeak on 26 April 2011 1:21:55 pm 
+/* Automatically generated from Squeak on 30 April 2011 12:37:12 am 
    by VMMaker 4.4.7
  */
 

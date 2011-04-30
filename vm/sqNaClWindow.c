@@ -419,7 +419,6 @@ static sqInt display_ioShowDisplay(sqInt dispBitsIndex, sqInt width, sqInt heigh
   if (toQuit) {
     pthread_exit(NULL);
   }
-  return 0;
   uint32_t *dispBits= pointerForOop(dispBitsIndex);
   uint32_t *pixels;
   int i, j;

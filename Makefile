@@ -102,7 +102,7 @@ squeak_x86_64_dbg.nexe: $(OBJECTS_X86_64_DBG)
 	$(CPP) $^ $(LDFLAGS) -m64 -o $@
 
 clean:
-	-$(RM) *.nmf *.o *.obj *.nexe bld/*
+	-$(RM) *.o *.obj *.nexe bld/*
 
 # This target is used by the SDK build system to produce a pre-built version
 # of the .nexe.  You do not need to call this target.
