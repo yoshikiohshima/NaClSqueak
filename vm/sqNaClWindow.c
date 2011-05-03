@@ -135,6 +135,12 @@ noteMouseEventState(const struct PP_InputEvent_Mouse* evt)
   modifierState = nacl2sqModifier(evt->modifier);
 }
 
+static void
+noteKeyEventState(const struct PP_InputEvent_Key* evt)
+{
+  modifierState = nacl2sqModifier(evt->modifier);
+}
+
 static PP_Bool
 getDesc()
 {
@@ -157,7 +163,7 @@ getDesc()
 static void 
 DestroyContext(PP_Instance instance)
 {
-  Log(isContextValid() ? "destroy good\n" : "destroy bad\n");
+  Log(isContextValid() ? "destroy good\n" : "destroy empty\n");
   if (isContextValid()) {
     pthread_mutex_lock(&image_mutex);
     core_->ReleaseResource(gc);
@@ -275,6 +281,20 @@ NaCl_HandleInputEvent(PP_Instance instance,
   case PP_INPUTEVENT_TYPE_MOUSEMOVE:
     noteMouseEventState(&evt->u.mouse);
     recordMouseEvent();
+    return PP_TRUE;
+  case PP_INPUTEVENT_TYPE_KEYDOWN:
+    noteKeyEventState(&evt->u.key);
+    sprintf(LogBuffer, "key: %d\n", evt->u.key.key_code);
+    Log(LogBuffer);
+    recordKeyboardEvent(evt->u.key.key_code, EventKeyDown, modifierState, evt->u.key.key_code);
+    return PP_TRUE;
+  case PP_INPUTEVENT_TYPE_CHAR:
+    noteKeyEventState(&evt->u.key);
+    recordKeyboardEvent(evt->u.key.key_code, EventKeyChar, modifierState, evt->u.key.key_code);
+    return PP_TRUE;
+  case PP_INPUTEVENT_TYPE_KEYUP:
+    noteKeyEventState(&evt->u.key);
+    recordKeyboardEvent(evt->u.key.key_code, EventKeyUp, modifierState, evt->u.key.key_code);
     return PP_TRUE;
   }
   return PP_FALSE;
