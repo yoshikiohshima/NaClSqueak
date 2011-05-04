@@ -134,7 +134,7 @@ static int nacl2sqModifier(uint32_t state)
   if (state & PP_INPUTEVENT_MODIFIER_METAKEY) {
     mods |= OptionKeyBit;
   }
-  fprintf(stderr, "mods = %d\n", (int)mods);
+  //  fprintf(stderr, "mods = %d\n", (int)mods);
   return mods;
 }
 

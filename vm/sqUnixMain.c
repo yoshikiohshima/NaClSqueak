@@ -1658,7 +1658,9 @@ unlink(const char *pathname)
 int
 nacl_fclose(sqImageFile f)
 {
-  /*free(f->buffer); */
+#ifndef EMBEDDED_IMAGE_FILE
+  free(f->buffer);
+#endif
   f->buffer = NULL;
   f->index = 0;
   return 0;

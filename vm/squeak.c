@@ -113,31 +113,6 @@ decode(char *input, int input_size, char *output, int output_index)
   return output_index;
 }
 
-#if 0
-static int32_t
-GetContentLength(struct PP_Var var)
-{
-  uint32_t headerLen;
-  int32_t len;
-  char c;
-  const char *cStr = var_interface->VarToUtf8(var, &headerLen);
-  char *occurence;
-  occurence = strstr(cStr, "Content-Length: ");
-  if (!occurence) {
-    return -1;
-  }
-  occurence += strlen("Content-Length: ");
-  len = 0;
-  c = *occurence++;
-  while ('0' <= c && c <= '9') {
-    len *= 10;
-    len += (c - '0');
-    c = *occurence++;
-  }
-  return len;
-}
-#endif
-
 /**
  * Returns C string contained in the @a var or NULL if @a var is not string.
  * @param[in] var PP_Var containing string.
@@ -175,88 +150,36 @@ unsigned char *image_file_buffer = NULL;
 int32_t image_file_size;
 static int32_t image_file_index = 0;
 
-#if 0
-static void
-ReadCallback(void *user_data, int32_t result)
-{
-  sprintf(LogBuffer, "read result: %d\n", (int)result);
-  Log(LogBuffer);
-  loader = 0;
-  pthread_create(&interpret_thread, NULL, runInterpret, NULL);
-}
-
-static struct PP_CompletionCallback ReadCompletionCallback = {ReadCallback, 0};
-
-static void
-LoadCallback(void *user_data, int32_t result)
-{
-  int32_t len;
-  responseInfo = loader_->GetResponseInfo(loader);
-  loader_status = responseInfo_->GetProperty(responseInfo, PP_URLRESPONSEPROPERTY_HEADERS);
-  len = GetContentLength(loader_status);
-  sprintf(LogBuffer, "len: %d\n", (int)len);
-  Log(LogBuffer);
-  if (len > 0) {
-    image_file_buffer = malloc(len+10);
-    Log (image_file_buffer ? "file buffer allocated\n" : "allocation failed\n");
-    if (1) {
-      loader_->ReadResponseBody(loader, image_file_buffer, len+10, ReadCompletionCallback);
-      sprintf(LogBuffer, "read result: %d\n", (int)image_file_buffer[100000]);
-    }else 
-      loader = 0;
-  }
-}
-
-static struct PP_CompletionCallback LoadCompletionCallback = {LoadCallback, 0};
-
-#endif
-
 struct PP_Var
 SetImageSize(struct PP_Var data)
 {
   image_file_size = GetInteger(data);
-  sprintf(LogBuffer, "set size %d\n", (int)image_file_size);
-  Log(LogBuffer);
-  /*
+  fprintf(stderr, "set size %d\n", (int)image_file_size);
+
   if ((image_file_buffer = malloc(image_file_size)) == NULL) {
-    Log("malloc failed\n");
+    fprintf(stderr, "malloc failed\n");
   }
   image_file_index = 0;
-  */
   return PP_MakeInt32(image_file_size);
 }
 
 struct PP_Var
-LoadImage()
+LoadImage(struct PP_Var data)
 {
   Log("load image\n");
+#if EMBEDDED_IMAGE_FILE
   image_file_buffer = default_image_file_buffer;
   image_file_size = default_image_file_size;
   sprintf(LogBuffer, "%x %d\n", (unsigned int)image_file_buffer, (int)image_file_size);
   Log(LogBuffer);
   pthread_create(&interpret_thread, NULL, runInterpret, NULL);
-#if 0
-  if (image_file_index > 8000000) {
-    return PP_MakeInt32(image_file_index);
-  }
+#else
   const char *buf = VarToCStr(data);
-  sprintf(LogBuffer, "buf size %d\n", (int)strlen(buf));
-  Log(LogBuffer);
+  //  fprintf(stderr, "buf size %d\n", (int)strlen(buf));
   image_file_index = decode((char*)buf, strlen(buf), (char*)image_file_buffer, image_file_index);
-  sprintf(LogBuffer, "file_index %d\n", (int)image_file_index);
-  Log(LogBuffer);
+  //  fprintf(stderr, "file index %d\n", (int)image_file_index);
   if (image_file_index == image_file_size) {
-    if (0) {
-      int i = image_file_size - 10000;
-      Log("{");
-      while (i < (image_file_size)) {
-	sprintf(LogBuffer, "%d", (unsigned int)image_file_buffer[i++]);
-	Log(LogBuffer);
-	if (i < image_file_size) Log(",");
-	if (i % 20 == 0) Log("\n");
-      }
-      Log("}");
-    }
+    pthread_create(&interpret_thread, NULL, runInterpret, NULL);
   }
 #endif
   return PP_MakeInt32(image_file_index);
@@ -376,7 +299,11 @@ Squeak_Call(void* object,
     /*if (strcmp(method_name, kGetLoaderStatusMethodId) == 0)
       return loader_status; */
     if (strcmp(method_name, kLoadImageMethodId) == 0) {
+#ifdef EMBEDDED_IMAGE_FILE
       return LoadImage();
+#else
+      return LoadImage(argv[0]);
+#endif
     }
     if (strcmp(method_name, kSetImageSizeMethodId) == 0) {
       return SetImageSize(argv[0]);
@@ -399,13 +326,6 @@ PPP_InitializeModule(PP_Module a_module_id, PPB_GetInterface get_browser_interfa
   module_id = a_module_id;
   var_interface = 
       (struct PPB_Var_Deprecated*)(get_browser_interface(PPB_VAR_DEPRECATED_INTERFACE));
-  /*  loader_ = (const struct PPB_URLLoader*)
-    get_browser_interface(PPB_URLLOADER_INTERFACE);
-  requestInfo_ = (const struct PPB_URLRequestInfo*)
-    get_browser_interface(PPB_URLREQUESTINFO_INTERFACE);
-  responseInfo_ = (const struct PPB_URLResponseInfo*)
-    get_browser_interface(PPB_URLRESPONSEINFO_INTERFACE);
-  */
   NaCl_InitializeModule(get_browser_interface);
   memset(&ppp_class, 0, sizeof(ppp_class));
   ppp_class.Call = Squeak_Call;
@@ -442,7 +362,6 @@ PPP_ShutdownModule()
 void*
 runInterpret(void *arg)
 {
-  Log("run interpret\n");
   char *argv[] = {"squeak", NULL};
     sqMain(1, argv, NULL);
   return NULL;

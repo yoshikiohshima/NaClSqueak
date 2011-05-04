@@ -13,9 +13,10 @@
 
 PYTHON = python
 
-SQCFILES = sqUnixMain.c sqNaClWindow.c sqNaClSound.c sqNaClFile.c sqUnixMemory.c sqUnixExternalPrims.c osExports.c
+SQCFILES = squeak.c sqUnixMain.c sqNaClWindow.c sqNaClSound.c sqNaClFile.c sqUnixMemory.c sqUnixExternalPrims.c osExports.c
 CROSSCFILES = sqVirtualMachine.c sqNamedPrims.c 
-CFILES = squeak.c Etoys.c
+CFILES = 
+#Etoys.c
 #INTERP = interp.c
 INTERP = gnu-interp.c
 
@@ -58,16 +59,16 @@ t32: squeak$(X8632).nexe
 t64: squeak$(X8664).nexe
 # check_variables #squeak.nmf squeak_dbg.nmf 
 
-interp.c: src/vm/interp.c
+bld/interp.c: src/vm/interp.c
 	cp $@ $<
 
-gnu-interp.c: src/vm/interp.c
+bld/gnu-interp.c: src/vm/interp.c
 	awk -v RS="\r\n" -f gnuify $< > $@
 #	awk -f gnuify $< > $@
 
 # Intermediate Targets for 32 bit
 
-$(INTERP_X86_32): $(INTERP)
+$(INTERP_X86_32): bld/$(INTERP)
 	$(CC) $(SQCFLAGS) -m32 $(INCLUDES) $(OPT_FLAGS) -c -o $@ $<
 
 $(VM_SQ_OBJECTS_X86_32):
@@ -79,14 +80,14 @@ $(VM_CROSS_OBJECTS_X86_32):
 $(PLUGINS_X86_32): bld/%_x86_32.a: src/vm/intplugins/%
 	$(AR) rc $@
 	for i in $^/$(notdir $^).c $(wildcard plugins/$(notdir $^)/*.c) $(wildcard vm/plugins/$(notdir $^)/*.c); do \
-		$(CC) $(SQCFLAGS) -m32 $(INCLUDES) -DSQUEAK_BUILTIN_PLUGIN -Iplugins/$(notdir $^) $(OPT_FLAGS) -c -o bld/`basename $$i .c`.o $$i; \
-	$(AR) r $@ bld/`basename $$i .c`.o; \
+		$(CC) $(SQCFLAGS) -m32 $(INCLUDES) -DSQUEAK_BUILTIN_PLUGIN -Iplugins/$(notdir $^) $(OPT_FLAGS) -c -o bld/`basename $$i .c`$(X8632).o $$i; \
+	$(AR) r $@ bld/`basename $$i .c`$(X8632).o; \
 	done
 	$(RANLIB) $@
 
 # Intermediate Targets for 64 bit
 
-$(INTERP_X86_64): $(INTERP)
+$(INTERP_X86_64): bld/$(INTERP)
 	$(CC) $(SQCFLAGS) -m64 $(INCLUDES) $(OPT_FLAGS) -c -o $@ $<
 
 $(VM_SQ_OBJECTS_X86_64):
@@ -98,8 +99,8 @@ $(VM_CROSS_OBJECTS_X86_64):
 $(PLUGINS_X86_64): bld/%_x86_64.a: src/vm/intplugins/%
 	$(AR) rc $@
 	for i in $^/$(notdir $^).c $(wildcard plugins/$(notdir $^)/*.c) $(wildcard vm/plugins/$(notdir $^)/*.c); do \
-		$(CC) $(SQCFLAGS) -m64 $(INCLUDES) -DSQUEAK_BUILTIN_PLUGIN -Iplugins/$(notdir $^) $(OPT_FLAGS) -c -o bld/`basename $$i .c`.o $$i; \
-	$(AR) r $@ bld/`basename $$i .c`.o; \
+		$(CC) $(SQCFLAGS) -m64 $(INCLUDES) -DSQUEAK_BUILTIN_PLUGIN -Iplugins/$(notdir $^) $(OPT_FLAGS) -c -o bld/`basename $$i .c`$(X8664).o $$i; \
+	$(AR) r $@ bld/`basename $$i .c`$(X8664).o; \
 	done
 	$(RANLIB) $@
 
