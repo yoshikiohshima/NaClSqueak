@@ -15,8 +15,7 @@ PYTHON = python
 
 SQCFILES = squeak.c sqUnixMain.c sqNaClWindow.c sqNaClSound.c sqNaClFile.c sqUnixMemory.c sqUnixExternalPrims.c osExports.c
 CROSSCFILES = sqVirtualMachine.c sqNamedPrims.c 
-CFILES = 
-#Etoys.c
+CFILES = Etoys.c
 #INTERP = interp.c
 INTERP = gnu-interp.c
 
@@ -31,7 +30,7 @@ AR = $(NACL_SDK_ROOT)/$(NACL_TOOLCHAIN_DIR)/bin/nacl-ar
 RANLIB = $(NACL_SDK_ROOT)/$(NACL_TOOLCHAIN_DIR)/bin/nacl-ranlib
 
 CFLAGS = -Wall -Wno-long-long -pthread -Werror
-SQCFLAGS = -Wno-long-long -pthread -Wno-pragmas -DNO_STD_FILE_SUPPORT
+SQCFLAGS = -Wno-long-long -pthread -Wno-pragmas -DNO_STD_FILE_SUPPORT -DEMBEDDED_IMAGE_FILE
 INCLUDES = -Isrc/vm -I. -Ivm -ICross/vm
 LDFLAGS = -lppruntime \
           -lpthread \

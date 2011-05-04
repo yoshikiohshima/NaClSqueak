@@ -330,7 +330,6 @@ static void recordFullPathForImageName(const char *localImageName)
 
 sqInt imageNameSize(void)
 {
-  trace();
   return strlen(imageName);
 }
 
@@ -339,7 +338,6 @@ sqInt imageNameGetLength(sqInt sqImageNameIndex, sqInt length)
   char *sqImageName= pointerForOop(sqImageNameIndex);
   int count, i;
 
-  trace();
   count= strlen(imageName);
   count= (length < count) ? length : count;
 
@@ -371,7 +369,6 @@ sqInt imageNamePutLength(sqInt sqImageNameIndex, sqInt length)
 
 char *getImageName(void)
 {
-  trace();
   return imageName;
 }
 
@@ -381,7 +378,6 @@ char *getImageName(void)
 
 sqInt vmPathSize(void)
 {
-  trace();
   return strlen(vmPath);
 }
 
@@ -397,8 +393,6 @@ sqInt vmPathGetLength(sqInt sqVMPathIndex, sqInt length)
   for (i= 0; i < count; i++)
     stVMPath[i]= vmPath[i];
 
-  trace();
-  fprintf(stderr, "count %d\n", (int)count);
   return count;
 }
 
@@ -436,8 +430,6 @@ sqInt ioDisablePowerManager(sqInt disableIfNonZero)
 
 static char *getAttribute(sqInt id)
 {
-  trace();
-  fprintf(stderr, "id %d\n", (int)id);
   if (id < 0)	/* VM argument */
     {
       if (-id  < vmArgCnt)
@@ -1669,7 +1661,6 @@ nacl_fclose(sqImageFile f)
 sqImageFile
 nacl_fopen(char *fileName, char* mode)
 {
-  trace();
   static struct NaClFile nf;
   extern unsigned char *image_file_buffer;
   nf.buffer = image_file_buffer;

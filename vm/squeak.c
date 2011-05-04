@@ -164,7 +164,11 @@ SetImageSize(struct PP_Var data)
 }
 
 struct PP_Var
+#ifdef EMBEDDED_IMAGE_FILE
+LoadImage()
+#else
 LoadImage(struct PP_Var data)
+#endif
 {
   Log("load image\n");
 #if EMBEDDED_IMAGE_FILE
@@ -191,16 +195,6 @@ Instance_DidCreate(PP_Instance instance,
                                   const char* argn[],
                                   const char* argv[])
 {
-  Log("did create\n");
-#if 0
-    loader = loader_->Create(instance);
-    requestInfo = requestInfo_->Create(instance);
-    requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_URL, StrToVar("http://localhost:5103/squeak/Etoys.image"));
-    requestInfo_->SetProperty(requestInfo, PP_URLREQUESTPROPERTY_METHOD, StrToVar("GET"));
-    loader_->Open(loader, requestInfo, LoadCompletionCallback);
-    Log("loader open\n");
-    return loader ? PP_TRUE : PP_FALSE;
-#endif
   return PP_TRUE;
 }
 

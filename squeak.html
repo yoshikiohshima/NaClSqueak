@@ -47,21 +47,21 @@
     }
 
       function loadSqueakImage() {
-//	   squeakModule.loadImage();
+	   squeakModule.loadImage();
 
-        var req = new XMLHttpRequest();
-        req.open('GET', 'Etoys2.image', false);
-	req.overrideMimeType('text/plain; charset=x-user-defined');
-        req.send(null);
-        if (req.status == 200) {
-          squeakModule.setImageSize(req.responseText.length.toString());
-          current = 0;
-	  while (current < req.responseText.length) {
-            squeakModule.loadImage(base64_encode(req.responseText.substring(current, current + 3000)));
-	    current = Math.min(current + 3000, req.responseText.length);
-          }
-          req = null;
-        }
+//        var req = new XMLHttpRequest();
+//        req.open('GET', 'Etoys.image', false);
+//	req.overrideMimeType('text/plain; charset=x-user-defined');
+//        req.send(null);
+//        if (req.status == 200) {
+//          squeakModule.setImageSize(req.responseText.length.toString());
+//          current = 0;
+//	  while (current < req.responseText.length) {
+//            squeakModule.loadImage(base64_encode(req.responseText.substring(current, current + 3000)));
+//	    current = Math.min(current + 3000, req.responseText.length);
+//          }
+//          req = null;
+//        }
       }
 
       function moduleDidLoad() {

@@ -597,12 +597,10 @@ static void display_printUsage(void)
 
 static void display_printUsageNotes(void)
 {
-  trace();
 }
 
 static void display_parseEnvironment(void)
 {
-  trace();
 }
 
 static int display_parseArgument(int argc, char **argv)
