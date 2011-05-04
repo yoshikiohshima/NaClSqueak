@@ -30,6 +30,10 @@
  * Last edited: 2011-01-24 10:31:12 by piumarta on emilia.local
  */
 
+/* The file is further modified by Yoshiki Ohshima (yoshiki at
+   vpri.org) for the Google Native Client port.  The original
+   copyright simply covers this work. */
+
 #include "sq.h"
 #include "sqMemoryAccess.h"
 #ifndef NACL
