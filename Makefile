@@ -62,8 +62,8 @@ interp.c: src/vm/interp.c
 	cp $@ $<
 
 gnu-interp.c: src/vm/interp.c
-	gawk -v RS="\r\n" -f gnuify $< > $@
-#	gawk -f gnuify $< > $@
+	awk -v RS="\r\n" -f gnuify $< > $@
+#	awk -f gnuify $< > $@
 
 # Intermediate Targets for 32 bit
 

@@ -168,15 +168,6 @@ PP_Var StrToVar(const char* str)
   return PP_MakeUndefined();
 }
 
-void
-Paint()
-{
-  if (flush_display_requested) {
-    FlushPixelBuffer();
-    flush_display_requested = 0;
-  }
-}
-
 extern unsigned char default_image_file_buffer[];
 extern int32_t default_image_file_size;
 

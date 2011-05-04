@@ -18,21 +18,18 @@
 
 extern pthread_mutex_t image_mutex;
 extern pthread_t interpret_thread;
-extern int32_t flush_pending;
 extern int32_t toQuit;
-
-extern int flush_display_requested;
 
 struct SqModule * nacl_display_module();
 struct SqModule * nacl_sound_module();
 
 extern int sqMain(int argc, char **argv, char **envp);
 extern void FlushPixelBuffer();
+extern void Paint();
 
-extern char LogBuffer[];
 void Log(char* message);
+char LogBuffer[1024];
 char *NaClStatus();
-void MainLog(char *message, int32_t i);
 
 void NaCl_DidChangeView(PP_Instance instance,
 		       const struct PP_Rect* position,

@@ -30,10 +30,12 @@
 #include "sqNaClWindow.h"
 #include "sqUnixEvent.c"		/* see X11 and/or Quartz drivers for examples */
 
-char LogStatus[100000];
-char LogBuffer[10240];
+char LogStatus[10000];
+char LogBuffer[1024];
 
-int flush_display_requested;
+static int flush_display_requested;
+static uint32_t *double_buffer;
+static uint32_t *pixels;
 
 static PP_Bool isContextValid();
 
@@ -73,6 +75,37 @@ static int32_t screenWidth;
 static int32_t screenHeight;
 static int32_t screenStride;
 
+static int translateCode(int code)
+{
+  switch (code)
+    {
+#if 0
+    case XK_Left:	return 28;
+    case XK_Up:		return 30;
+    case XK_Right:	return 29;
+    case XK_Down:	return 31;
+    case XK_Insert:	return  5;
+    case XK_Prior:	return 11;	/* page up */
+    case XK_Next:	return 12;	/* page down */
+    case XK_Home:	return  1;
+    case XK_End:	return  4;
+
+    case XK_KP_Left:	return 28;
+    case XK_KP_Up:	return 30;
+    case XK_KP_Right:	return 29;
+    case XK_KP_Down:	return 31;
+    case XK_KP_Insert:	return  5;
+    case XK_KP_Prior:	return 11;	/* page up */
+    case XK_KP_Next:	return 12;	/* page down */
+    case XK_KP_Home:	return  1;
+    case XK_KP_End:	return  4;
+#endif
+    default:		return -1;
+    }
+  /*NOTREACHED*/
+}
+
+
 static int nacl2sqButton(int button)
 {
   if (button == PP_INPUTEVENT_MOUSEBUTTON_LEFT) {
@@ -87,39 +120,25 @@ static int nacl2sqButton(int button)
 
 static int nacl2sqModifier(uint32_t state)
 {
-  int mods= 0;
-  if (0)
-    {
-    }
-  else
-    {
-      enum { _= 0, S= ShiftKeyBit, C= CtrlKeyBit, O= OptionKeyBit, M= CommandKeyBit };
-      static char midofiers[32]= {	/* ALT=Cmd, META=ignored, C-ALT=Opt, META=ignored */
-       	/*                - -       - S       L -       L S */
-       	/* - - - - */ _|_|_|_,  _|_|_|S,  _|_|_|_,  _|_|_|S,
-       	/* - - - C */ _|_|C|_,  _|_|C|S,  _|_|C|_,  _|_|C|S,
-       	/* - - A - */ _|M|_|_,  _|M|_|S,  _|M|_|_,  _|M|_|S,
-       	/* - - A C */ O|_|_|_,  O|_|_|S,  O|_|_|_,  O|_|_|S,
-       	/*                - -       - S       L -       L S */
-       	/* M - - - */ _|M|_|_,  _|M|_|S,  _|M|_|_,  _|M|_|S,
-       	/* M - - C */ _|M|C|_,  _|M|C|S,  _|M|C|_,  _|M|C|S,
-       	/* M - A - */ _|M|_|_,  _|M|_|S,  _|M|_|_,  _|M|_|S,
-       	/* M - A C */ O|_|_|_,  O|M|_|S,  O|M|_|_,  O|M|_|S,
-      };
-#    if defined(__POWERPC__) || defined(__ppc__)
-      mods= midofiers[state & 0x1f];
-#    else
-      mods= midofiers[state & 0x0f];
-#    endif
-#    if defined(DEBUG_EVENTS)
-      fprintf(stderr, "X mod %x -> Sq mod %x (default)\n", state & 0xf, mods);
-#    endif
-    }
+  int mods = 0;
+
+  if (state & PP_INPUTEVENT_MODIFIER_SHIFTKEY) {
+    mods |= ShiftKeyBit;
+  }
+  if (state & PP_INPUTEVENT_MODIFIER_CONTROLKEY) {
+    mods |= CtrlKeyBit;
+  }
+  if (state & PP_INPUTEVENT_MODIFIER_ALTKEY) {
+    mods |= CommandKeyBit;
+  }
+  if (state & PP_INPUTEVENT_MODIFIER_METAKEY) {
+    mods |= OptionKeyBit;
+  }
+  fprintf(stderr, "mods = %d\n", (int)mods);
   return mods;
 }
 
 #define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__)
-/*#define trace() do {sprintf(LogBuffer, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__); Log(LogBuffer);} while(0) */
 
 static void
 noteMouseEventPosition(const struct PP_InputEvent_Mouse *evt)
@@ -165,12 +184,14 @@ DestroyContext(PP_Instance instance)
 {
   Log(isContextValid() ? "destroy good\n" : "destroy empty\n");
   if (isContextValid()) {
-    pthread_mutex_lock(&image_mutex);
     core_->ReleaseResource(gc);
     gc = 0;
     core_->ReleaseResource(image);
     image = 0;
-    pthread_mutex_unlock(&image_mutex);
+    if (double_buffer) {
+      free(double_buffer);
+      double_buffer = 0;
+    }
   }
 }
 
@@ -191,22 +212,11 @@ CreateContext(PP_Instance instance, const struct PP_Size* size)
   if (!instance_->BindGraphics(instance, gc)) {
     Log("couldn't bind gc\n");
   }
-
-  Log("make image\n");
   image = image_data_->Create(instance, PP_IMAGEDATAFORMAT_BGRA_PREMUL,
 				size,
 				PP_FALSE);
   getDesc();
-  {
-    uint32_t *pixels = image_data_->Map(image);
-    int i, j;
-    for (j = 0; j < screenHeight; j++) {
-      for (i = 0; i < screenWidth; i++) {
-	pixels[j*(screenStride/4)+i] = (j<<24)+ (i<<8) + 0xFF;
-      }
-    }
-    image_data_->Unmap(image);
-  }
+  double_buffer = malloc(size->width * size->height * sizeof(uint32_t));
   pthread_mutex_unlock(&image_mutex);
 }
 
@@ -222,16 +232,34 @@ void
 FlushPixelBuffer()
 {
   struct PP_Point top_left;
-  /*  struct PP_Rect src_left = NULL;*/
+  int i, j;
   top_left.x = 0;
   top_left.y = 0;
-  if (!isContextValid() /*!(graphics_2d_->IsGraphics2D(gc))*/) {
+  if (!isContextValid()) {
     flush_pending = 0;
     return;
   }
+  pthread_mutex_lock(&image_mutex);
+  pixels = image_data_->Map(image);
+  for (j = 0; j < screenHeight; j++) {
+    for (i = 0; i < screenWidth; i++) {
+      pixels[j*(screenStride/4)+i] = double_buffer[j*screenWidth+i];
+    }
+  }
+  image_data_->Unmap(image);
   graphics_2d_->PaintImageData(gc, image, &top_left, NULL);
+  pthread_mutex_unlock(&image_mutex);
   flush_pending = 1;
   graphics_2d_->Flush(gc, CompletionCallback);
+}
+
+void
+Paint()
+{
+  if (flush_display_requested) {
+    FlushPixelBuffer();
+    flush_display_requested = 0;
+  }
 }
 
 static PP_Bool
@@ -284,16 +312,17 @@ NaCl_HandleInputEvent(PP_Instance instance,
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_KEYDOWN:
     noteKeyEventState(&evt->u.key);
-    sprintf(LogBuffer, "key: %d\n", evt->u.key.key_code);
-    Log(LogBuffer);
+    fprintf(stderr, "down: %d, %d\n", evt->u.key.key_code, evt->u.key.modifier);
     recordKeyboardEvent(evt->u.key.key_code, EventKeyDown, modifierState, evt->u.key.key_code);
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_CHAR:
     noteKeyEventState(&evt->u.key);
+    fprintf(stderr, "char: %d, %d\n", evt->u.key.key_code, evt->u.key.modifier);
     recordKeyboardEvent(evt->u.key.key_code, EventKeyChar, modifierState, evt->u.key.key_code);
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_KEYUP:
     noteKeyEventState(&evt->u.key);
+    fprintf(stderr, "up: %d, %d\n", evt->u.key.key_code, evt->u.key.modifier);
     recordKeyboardEvent(evt->u.key.key_code, EventKeyUp, modifierState, evt->u.key.key_code);
     return PP_TRUE;
   }
@@ -399,80 +428,108 @@ static sqInt display_ioProcessEvents(void)
 
 static sqInt display_ioScreenDepth(void)
 {
-  trace();
   return 32;
 }
 
 static sqInt display_ioScreenSize(void)
 {
-  trace();
   return (screenWidth << 16) | screenHeight;
 }
 
 static sqInt display_ioSetCursorWithMask(sqInt cursorBitsIndex, sqInt cursorMaskIndex, sqInt offsetX, sqInt offsetY)
 {
-  trace();
   return 0;
 }
 
 static sqInt display_ioSetCursorARGB(sqInt cursorBitsIndex, sqInt extentX, sqInt extentY, sqInt offsetX, sqInt offsetY)
 {
-  trace();
   return 0;
 }
 
 static sqInt display_ioSetFullScreen(sqInt fullScreen)
 {
-  trace();
   return 0;
 }
 
 static sqInt display_ioForceDisplayUpdate(void)
 {
-  trace();
   return 0;
 }
 
 static sqInt display_ioShowDisplay(sqInt dispBitsIndex, sqInt width, sqInt height, sqInt depth,
 				   sqInt affectedL, sqInt affectedR, sqInt affectedT, sqInt affectedB)
 {
-  trace();
+#define max(x, y) ((x) > (y) ? (x) : (y))
+#define min(x, y) ((x) < (y) ? (x) : (y))
   if (toQuit) {
     pthread_exit(NULL);
   }
-  uint32_t *dispBits= (uint32_t*)pointerForOop(dispBitsIndex);
-  uint32_t *pixels;
-  int i, j;
-  pthread_mutex_lock(&image_mutex);
-  if (isContextValid()) {
-    pixels = image_data_->Map(image);
-    for (j = 0; j < screenHeight; j++) {
-      for (i = 0; i < screenWidth; i++) {
-	pixels[j*(screenStride/4)+i] = dispBits[j*width+i];
+  if (!isContextValid()) {
+    return 0;
+  }
+  if (depth == 32) {
+    uint32_t *dispBits= (uint32_t*)pointerForOop(dispBitsIndex);
+    int i, j;
+    for (j = max(affectedT, 0); j < min(affectedB, screenHeight); j++) {
+      for (i = max(affectedL, 0); i < min(affectedR, screenWidth); i++) {
+	double_buffer[j*(screenStride/4)+i] = dispBits[j*width+i];
       }
     }
-    image_data_->Unmap(image);
   }
-  pthread_mutex_unlock(&image_mutex);
+  if (depth == 16) {
+    uint32_t col;
+    uint32_t *dispBits= (uint32_t*)pointerForOop(dispBitsIndex);
+    uint32_t word;
+    int i, j;
+#define hiword(x) (x>>16)
+#define loword(x) (x&0xFFFF)
+#define map16To32(w) (col= (w), \
+		      ((((col >> 10) & 0x1f) * 255 / 31) << 16) | \
+		      ((((col >> 5) & 0x1f) * 255 / 31) << 8)   | \
+		      ((((col >> 0) & 0x1f) * 255 / 31) << 0)   | \
+		      0xFF000000)
+
+    for (j = max(affectedT, 0); j < min(affectedB, screenHeight); j++) {
+      i = max(affectedL, 0);
+      while (i < min(affectedR, screenWidth)) {
+	if (i % 2) {
+	  double_buffer[j*(screenStride/4)+i] = map16To32(loword(dispBits[(j*width+i)/2]));
+	  i++;
+	}
+	word = dispBits[(j*width+i)/2];
+	double_buffer[j*(screenStride/4)+i] = map16To32(hiword(word));
+	i++;
+	double_buffer[j*(screenStride/4)+i] = map16To32(loword(word));
+	i++;
+	if (min(affectedR, screenWidth) - i == 1) {
+	  double_buffer[j*(screenStride/4)+i] = map16To32(hiword(dispBits[(j*width+i)/2]));
+	  i++;
+	}
+      }
+    }
+  }
+#undef hiword
+#undef loword
+#undef map16To32
+#undef max
+#undef min
+
   flush_display_requested = 1;
   return 0;
 }
 
 static sqInt display_ioHasDisplayDepth(sqInt i)
 {
-  trace();
   return 32 == i || 16 == i;
 }
 
 static sqInt display_ioSetDisplayMode(sqInt width, sqInt height, sqInt depth, sqInt fullscreenFlag)
 {
-  trace();
   return 0;
 }
 
 static void display_winSetName(char *imageName)
 {
-  trace();
 }
 
 static void *display_ioGetDisplay(void)	{ return 0; }
@@ -487,27 +544,20 @@ static void  display_ioGLsetBufferRect(glRenderer *r, sqInt x, sqInt y, sqInt w,
 
 static char *display_winSystemName(void)
 {
-  trace();
   return "NaCl";
 }
 
 static void display_winInit(void)
 {
-  trace();
-  printf("Initialise your Custom Window system here\n");
 }
 
 static void display_winOpen(void)
 {
-  trace();
-  printf("map your Custom Window here\n");
 }
 
 
 static void display_winExit(void)
 {
-  trace();
-  printf("shut down your Custom Window system here\n");
 }
 
 static int  display_winImageFind(char *buf, int len)		{ trace();  return 0; }
