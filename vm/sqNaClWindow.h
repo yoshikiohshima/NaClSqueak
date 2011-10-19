@@ -9,11 +9,13 @@
 #include <ppapi/c/pp_rect.h>
 #include <ppapi/c/pp_point.h>
 #include <ppapi/c/ppb_image_data.h>
+#include <ppapi/c/ppb_input_event.h>
 #include <ppapi/c/ppb_graphics_2d.h>
 #include <ppapi/c/ppb_graphics_2d.h>
 #include <ppapi/c/ppb_core.h>
 #include <ppapi/c/pp_input_event.h>
 #include <ppapi/c/pp_completion_callback.h>
+#include <ppapi/c/pp_resource.h>
 
 
 extern pthread_mutex_t image_mutex;
@@ -36,7 +38,7 @@ void NaCl_DidChangeView(PP_Instance instance,
 			const struct PP_Rect* clip);
 
 PP_Bool NaCl_HandleInputEvent(PP_Instance instance,
-			      const struct PP_InputEvent* evt);
+			      const PP_Resource evt);
 
 void NaCl_InitializeModule(PPB_GetInterface get_browser_interface);
 

@@ -176,7 +176,7 @@ LoadImage(char* buf)
 #if EMBEDDED_IMAGE_FILE
   image_file_buffer = default_image_file_buffer;
   image_file_size = default_image_file_size;
-  fprintf(stderr, "%x %d\n", (unsigned int)image_file_buffer, (int)image_file_size);
+  //  fprintf(stderr, "%x %d\n", (unsigned int)image_file_buffer, (int)image_file_size);
   pthread_create(&interpret_thread, NULL, runInterpret, NULL);
 #else
   //  fprintf(stderr, "buf size %d\n", (int)strlen(buf));

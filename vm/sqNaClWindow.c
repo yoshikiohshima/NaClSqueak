@@ -77,6 +77,9 @@ static const struct PPB_Graphics2D* graphics_2d_;
 static const struct PPB_ImageData* image_data_;
 static const struct PPB_Instance* instance_;
 const struct PPB_Core* core_;
+const struct PPB_InputEvent* event_;
+const struct PPB_KeyboardInputEvent* keyboardEvent_;
+const struct PPB_MouseInputEvent* mouseEvent_;
 
 static PP_Resource gc = 0;
 static PP_Resource image = 0;
@@ -157,23 +160,24 @@ static int nacl2sqModifier(uint32_t state)
 #define trace() fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, __FUNCTION__)
 
 static void
-noteMouseEventPosition(const struct PP_InputEvent_Mouse *evt)
+noteMouseEventPosition(const PP_Resource evt)
 {
-  mousePosition.x = evt->x;
-  mousePosition.y = evt->y;
+  struct PP_Point position = mouseEvent_->GetPosition(evt);
+  mousePosition.x = position.x;
+  mousePosition.y = position.y;
 }
   
 static void
-noteMouseEventState(const struct PP_InputEvent_Mouse* evt)
+noteMouseEventState(const PP_Resource evt)
 {
   noteMouseEventPosition(evt);
-  modifierState = nacl2sqModifier(evt->modifier);
+  modifierState = event_->GetModifiers(evt);
 }
 
 static void
-noteKeyEventState(const struct PP_InputEvent_Key* evt)
+noteKeyEventState(const PP_Resource evt)
 {
-  modifierState = nacl2sqModifier(evt->modifier);
+  modifierState = event_->GetModifiers(evt);
 }
 
 static PP_Bool
@@ -295,52 +299,71 @@ NaCl_DidChangeView(PP_Instance instance,
   Log("change view\n");
   DestroyContext(instance);
   CreateContext(instance, &position->size);
+  event_->RequestInputEvents(instance, PP_INPUTEVENT_CLASS_MOUSE | PP_INPUTEVENT_CLASS_KEYBOARD);
 }
 
 PP_Bool
 NaCl_HandleInputEvent(PP_Instance instance,
-		      const struct PP_InputEvent* evt)
+		      const PP_Resource evt)
 {
-  switch (evt->type) {
+  uint32_t keyCode, modifiers;
+  PP_InputEvent_Type type = event_->GetType(evt);
+  PP_InputEvent_MouseButton mouseButton;
+  modifiers = event_->GetModifiers(evt);
+  switch (type) {
   case PP_INPUTEVENT_TYPE_MOUSEDOWN:
-    noteMouseEventState(&evt->u.mouse);
-    switch (evt->u.mouse.button) {
+	//evt = mouseEvent_->create(instance, type, event_->GetTimeStamp(evt), event_->GetModifiers(evt),mouseEvent_->GetButton(evt),mouseEvent_->GetPosition(evt),mouseEvent_->GetClickCount(evt));
+	noteMouseEventState(evt);
+	mouseButton = mouseEvent_->GetButton(evt);
+    switch (mouseButton) {
     case PP_INPUTEVENT_MOUSEBUTTON_NONE: case PP_INPUTEVENT_MOUSEBUTTON_LEFT: case PP_INPUTEVENT_MOUSEBUTTON_MIDDLE: case PP_INPUTEVENT_MOUSEBUTTON_RIGHT:
-      buttonState |= nacl2sqButton(evt->u.mouse.button);
+      buttonState |= nacl2sqButton(mouseButton);
       recordMouseEvent();
-      Log("mouse down\n");
       break;
     }
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_MOUSEUP:
-    noteMouseEventState(&evt->u.mouse);
-    switch (evt->u.mouse.button) {
+	//evt = mouseEvent_->create(instance, type, event_->GetTimeStamp(evt), event_->GetModifiers(evt),mouseEvent_->GetButton(evt),mouseEvent_->GetPosition(evt),mouseEvent_->GetClickCount(evt));
+	noteMouseEventState(evt);
+	mouseButton = mouseEvent_->GetButton(evt);
+    switch (mouseButton) {
     case PP_INPUTEVENT_MOUSEBUTTON_NONE: case PP_INPUTEVENT_MOUSEBUTTON_LEFT: case PP_INPUTEVENT_MOUSEBUTTON_MIDDLE: case PP_INPUTEVENT_MOUSEBUTTON_RIGHT:
-      buttonState &= ~nacl2sqButton(evt->u.mouse.button);
+      buttonState &= ~nacl2sqButton(mouseButton);
       recordMouseEvent();
-      Log("mouse up\n");
       break;
     }
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_MOUSEMOVE:
-    noteMouseEventState(&evt->u.mouse);
+	//evt = mouseEvent_->create(instance, type, event_->GetTimeStamp(evt), event_->GetModifiers(evt),mouseEvent_->GetButton(evt),mouseEvent_->GetPosition(evt),mouseEvent_->GetClickCount(evt));
+	noteMouseEventState(evt);
     recordMouseEvent();
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_KEYDOWN:
-    noteKeyEventState(&evt->u.key);
-    fprintf(stderr, "down: %d, %d\n", evt->u.key.key_code, evt->u.key.modifier);
-    recordKeyboardEvent(evt->u.key.key_code, EventKeyDown, modifierState, evt->u.key.key_code);
+	//keyboardEvent_->create(instance,type, event_->GetTimeStamp(evt), event_->GetModifiers(evt),keyboardEvent_->GetKeyCode(evt),keyboardEvent_->GetCharacterText(evt));
+    noteKeyEventState(evt);
+    keyCode = keyboardEvent_->GetKeyCode(evt);
+    fprintf(stderr, "down: %d, %d\n", keyCode, modifiers);
+    recordKeyboardEvent(keyCode, EventKeyDown, modifierState, keyCode);
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_CHAR:
-    noteKeyEventState(&evt->u.key);
-    fprintf(stderr, "char: %d, %d\n", evt->u.key.key_code, evt->u.key.modifier);
-    recordKeyboardEvent(evt->u.key.key_code, EventKeyChar, modifierState, evt->u.key.key_code);
-    return PP_TRUE;
+	noteKeyEventState(evt);
+	keyCode = keyboardEvent_->GetKeyCode(evt);
+	fprintf(stderr, "char: %d, %d\n", keyCode, modifiers);
+	recordKeyboardEvent(keyCode, EventKeyChar, modifierState, keyCode);
+	return PP_TRUE;
   case PP_INPUTEVENT_TYPE_KEYUP:
-    noteKeyEventState(&evt->u.key);
-    fprintf(stderr, "up: %d, %d\n", evt->u.key.key_code, evt->u.key.modifier);
-    recordKeyboardEvent(evt->u.key.key_code, EventKeyUp, modifierState, evt->u.key.key_code);
+	noteKeyEventState(evt);
+	keyCode = keyboardEvent_->GetKeyCode(evt);
+	fprintf(stderr, "up: %d, %d\n", keyCode, modifiers);
+    recordKeyboardEvent(keyCode, EventKeyUp, modifierState, keyCode);
     return PP_TRUE;
+  case PP_INPUTEVENT_TYPE_UNDEFINED:
+  case PP_INPUTEVENT_TYPE_MOUSEENTER:
+  case PP_INPUTEVENT_TYPE_MOUSELEAVE:
+  case PP_INPUTEVENT_TYPE_WHEEL:
+  case PP_INPUTEVENT_TYPE_RAWKEYDOWN:
+  case PP_INPUTEVENT_TYPE_CONTEXTMENU:
+    return PP_FALSE;
   }
   return PP_FALSE;
 }
@@ -348,14 +371,14 @@ NaCl_HandleInputEvent(PP_Instance instance,
 void
 NaCl_InitializeModule(PPB_GetInterface get_browser_interface)
 {
-  core_ = (const struct PPB_Core*)
-    get_browser_interface(PPB_CORE_INTERFACE);
-  instance_ = (const struct PPB_Instance*)
-    get_browser_interface(PPB_INSTANCE_INTERFACE);
-  graphics_2d_ = (const struct PPB_Graphics2D*)
-   get_browser_interface(PPB_GRAPHICS_2D_INTERFACE);
-  image_data_ = (const struct PPB_ImageData*)
-   get_browser_interface(PPB_IMAGEDATA_INTERFACE);
+  core_ = (const struct PPB_Core*) get_browser_interface(PPB_CORE_INTERFACE);
+  event_ = (const struct PPB_InputEvent*) get_browser_interface(PPB_INPUT_EVENT_INTERFACE);
+  keyboardEvent_ = (const struct PPB_KeyboardInputEvent*) get_browser_interface(PPB_KEYBOARD_INPUT_EVENT_INTERFACE);
+  mouseEvent_ = (const struct PPB_MouseInputEvent*) get_browser_interface(PPB_MOUSE_INPUT_EVENT_INTERFACE);
+  //wheelEvent_ = (const struct PPB_Core*) get_browser_interface(PPB_WHEEL_INPUT_EVENT_INTERFACE);
+  instance_ = (const struct PPB_Instance*) get_browser_interface(PPB_INSTANCE_INTERFACE);
+  graphics_2d_ = (const struct PPB_Graphics2D*) get_browser_interface(PPB_GRAPHICS_2D_INTERFACE);
+  image_data_ = (const struct PPB_ImageData*) get_browser_interface(PPB_IMAGEDATA_INTERFACE);
   pthread_mutex_init(&image_mutex, NULL);
 }
 

@@ -1538,6 +1538,7 @@ sqInt ioExit(void)
 {
   dpy->winExit();
   toQuit = true;
+  return 0;
 }
 
 #if defined(DARWIN)
@@ -1554,8 +1555,10 @@ sqInt ioExit(void)
 
 sqInt sqGetFilenameFromString(char *aCharBuffer, char *aFilenameString, sqInt filenameLength, sqInt resolveAlias)
 {
+#ifndef NACL
   int numLinks= 0;
   struct stat st;
+#endif
 
 #ifdef NACL
   memcpy(aCharBuffer, aFilenameString, filenameLength+1);
