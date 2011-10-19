@@ -11,9 +11,12 @@ nacl_env = make_nacl_env.NaClEnvironment()
 
 nacl_env.Append(CPPPATH=['./vm', './Cross/vm', './src/vm', '.']+(map(str, Glob('plugins/*'))))
 
-nacl_env.Append(CFLAGS=['-DSQUEAK_BUILTIN_PLUGIN', '-DEMBEDDED_IMAGE_FILE'])
+nacl_env.Append(CFLAGS=['-DSQUEAK_BUILTIN_PLUGIN'])
 
-sources = ['naclsqueak.c', './vm/sqNaClWindow.c', './vm/sqUnixMain.c', './vm/sqNaClSound.c', './vm/sqNaClFile.c', './vm/sqUnixMemory.c', './vm/sqUnixExternalPrims.c', './vm/osExports.c', './Cross/vm/sqVirtualMachine.c', './Cross/vm/sqNamedPrims.c', 'gnu-interp.c', 'Etoys.c']
+sources = ['naclsqueak.c', './vm/sqNaClWindow.c', './vm/sqUnixMain.c', './vm/sqNaClSound.c', './vm/sqNaClFile.c', './vm/sqUnixMemory.c', './vm/sqUnixExternalPrims.c', './vm/osExports.c', './Cross/vm/sqVirtualMachine.c', './Cross/vm/sqNamedPrims.c', 'gnu-interp.c']
+
+if ('-DEMBEDDED_IMAGE_FILE' in nacl_env['CFLAGS']):
+    sources += ['Etoys.c']
 
 for dir in Glob('vm/plugins/*'):
     sources += map(str, Glob(str(dir)+'/*.c'))

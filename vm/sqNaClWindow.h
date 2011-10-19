@@ -20,6 +20,7 @@
 
 extern pthread_mutex_t image_mutex;
 extern pthread_t interpret_thread;
+extern int32_t image_file_size;
 extern int32_t toQuit;
 
 struct SqModule * nacl_display_module();

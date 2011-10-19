@@ -77,7 +77,7 @@
 
 #define IMAGE_NAME_SIZE MAXPATHLEN
 
-#define DefaultHeapSize		  20	     	/* megabytes BEYOND actual image size */
+#define DefaultHeapSize		  22	     	/* megabytes BEYOND actual image size */
 #define DefaultMmapSize		1024     	/* megabytes of virtual memory */
 
        char  *documentName= 0;			/* name if launced from document */
@@ -1373,9 +1373,8 @@ void imgInit(void)
       break;
     }
 #else
-  Log("imgInit\n");
   sqImageFile f= nacl_fopen("foo", "r");
-  readImageFromFileHeapSize(f, 18 * 1024 * 1024);
+  readImageFromFileHeapSize(f, (DefaultHeapSize * 1024 * 1024) + image_file_size);
   sqImageFileClose(f);
   Log("imgInit end\n");
 #endif  
@@ -1449,9 +1448,6 @@ int sqMain(int argc, char **argv, char **envp)
   tzset();	/* should _not_ be necessary! */
 #endif
 
-  Log(argv[0]);
-  Log("\n");
-
   recordFullPathForVmName(argv[0]);	/* full vm path */
   squeakPlugins= vmPath;		/* default plugin location is VM directory */
 
@@ -1475,7 +1471,7 @@ int sqMain(int argc, char **argv, char **envp)
     vmName[0]= 0; /* full VM name */
 #endif
 
-  Log("modules\n");
+  fprintf(stderr, "Modules\n");
 
 #ifdef DEBUG_IMAGE
   printf("vmName: %s -> %s\n", argv[0], vmName);

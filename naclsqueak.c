@@ -68,13 +68,15 @@ GetInteger(char *start)
   while ('0' <= c && c <= '9') {
     len *= 10;
     len += (c - '0');
-    c = *start++;
+    c = *++start;
   }
   return len;
 }
 
-static char* CStrFromVar(struct PP_Var var) {
-  static char c_str[1024];
+static char*
+CStrFromVar(struct PP_Var var)
+{
+  static char c_str[4096];
   uint32_t len = 0;
   if (ppb_var_interface != NULL) {
     const char* var_c_str = ppb_var_interface->VarToUtf8(var, &len);
@@ -84,7 +86,7 @@ static char* CStrFromVar(struct PP_Var var) {
       return c_str;
     }
   }
-  return NULL;
+  return "";
 }
 
 static const char cd64[]="|$$$}rstuvwxyz{$$$$$$$>?@ABCDEFGHIJKLMNOPQRSTUVW$$$$$$XYZ[\\]^_`abcdefghijklmnopq";
@@ -140,7 +142,9 @@ decode(char *input, int input_size, char *output, int output_index)
  * @param[in] str C string to be converted to PP_Var
  * @return PP_Var containing string.
  */
-static struct PP_Var AllocateVarFromCStr(const char* str) {
+static struct PP_Var
+AllocateVarFromCStr(const char* str)
+{
   if (ppb_var_interface != NULL)
     return ppb_var_interface->VarFromUtf8(module_id, str, strlen(str));
   return PP_MakeUndefined();
@@ -150,14 +154,17 @@ extern unsigned char default_image_file_buffer[];
 extern int32_t default_image_file_size;
 
 unsigned char *image_file_buffer = NULL;
-int32_t image_file_size;
 static int32_t image_file_index = 0;
 
-struct PP_Var
-SetImageSize(int32_t image_file_size)
-{
-  fprintf(stderr, "set size %d\n", (int)image_file_size);
+int32_t image_file_size = 0;
 
+
+struct PP_Var
+SetImageSize(int32_t size)
+{
+  fprintf(stderr, "set size %d\n", (int)size);
+
+  image_file_size = size;
   if ((image_file_buffer = malloc(image_file_size)) == NULL) {
     fprintf(stderr, "malloc failed\n");
   }
@@ -172,17 +179,17 @@ LoadImage()
 LoadImage(char* buf)
 #endif
 {
-  fprintf(stderr, "load image\n");
 #if EMBEDDED_IMAGE_FILE
   image_file_buffer = default_image_file_buffer;
   image_file_size = default_image_file_size;
-  //  fprintf(stderr, "%x %d\n", (unsigned int)image_file_buffer, (int)image_file_size);
+  fprintf(stderr, "%x %d\n", (unsigned int)image_file_buffer, (int)image_file_size);
   pthread_create(&interpret_thread, NULL, runInterpret, NULL);
 #else
-  //  fprintf(stderr, "buf size %d\n", (int)strlen(buf));
   image_file_index = decode((char*)buf, strlen(buf), (char*)image_file_buffer, image_file_index);
-  //  fprintf(stderr, "file index %d\n", (int)image_file_index);
-  if (image_file_index == image_file_size) {
+  if ((image_file_index % 120000) == 0) {
+    fprintf(stderr, "file index %d\n", (int)image_file_index);
+  }
+  if (image_file_index >= image_file_size) {
     pthread_create(&interpret_thread, NULL, runInterpret, NULL);
   }
 #endif
@@ -212,10 +219,12 @@ LoadImage(char* buf)
  *     these values match the indices of the corresponding names in @a argn.
  * @return @a PP_TRUE on success.
  */
-static PP_Bool Instance_DidCreate(PP_Instance instance,
-                                  uint32_t argc,
-                                  const char* argn[],
-                                  const char* argv[]) {
+static PP_Bool
+Instance_DidCreate(PP_Instance instance,
+		   uint32_t argc,
+		   const char* argn[],
+		   const char* argv[])
+{
   return PP_TRUE;
 }
 
@@ -226,7 +235,9 @@ static PP_Bool Instance_DidCreate(PP_Instance instance,
  * @param[in] instance The identifier of the instance representing this NaCl
  *     module.
  */
-static void Instance_DidDestroy(PP_Instance instance) {
+static void
+Instance_DidDestroy(PP_Instance instance)
+{
 }
 
 /**
@@ -241,9 +252,11 @@ static void Instance_DidDestroy(PP_Instance instance) {
  *     the top left of the plugin's coordinate system (not the page).  If the
  *     plugin is invisible, @a clip will be (0, 0, 0, 0).
  */
-static void Instance_DidChangeView(PP_Instance instance,
-                                   const struct PP_Rect* position,
-                                   const struct PP_Rect* clip) {
+static void
+Instance_DidChangeView(PP_Instance instance,
+		       const struct PP_Rect* position,
+		       const struct PP_Rect* clip)
+{
   NaCl_DidChangeView(instance, position, clip);
 }
 
@@ -264,12 +277,16 @@ static void Instance_DidChangeView(PP_Instance instance,
  * @param[in] has_focus Indicates whether this NaCl module gained or lost
  *     event focus.
  */
-static void Instance_DidChangeFocus(PP_Instance instance,
-                                    PP_Bool has_focus) {
+static void
+Instance_DidChangeFocus(PP_Instance instance,
+			PP_Bool has_focus)
+{
 }
 
-static PP_Bool InputEvent_HandleInputEvent(PP_Instance instance,
-					const PP_Resource evt) {
+static PP_Bool
+InputEvent_HandleInputEvent(PP_Instance instance,
+			    const PP_Resource evt)
+{
   return NaCl_HandleInputEvent(instance, evt);
 }
 
@@ -283,8 +300,10 @@ static PP_Bool InputEvent_HandleInputEvent(PP_Instance instance,
  * @param[in] url_loader A PP_Resource an open PPB_URLLoader instance.
  * @return PP_FALSE.
  */
-static PP_Bool Instance_HandleDocumentLoad(PP_Instance instance,
-                                           PP_Resource url_loader) {
+static PP_Bool
+Instance_HandleDocumentLoad(PP_Instance instance,
+			    PP_Resource url_loader)
+{
   /* NaCl modules do not need to handle the document load function. */
   return PP_FALSE;
 }
@@ -305,7 +324,9 @@ static PP_Bool Instance_HandleDocumentLoad(PP_Instance instance,
  * @param[in] message The contents, copied by value, of the message sent from
  *     browser via postMessage.
  */
-void Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message) {
+void
+Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message)
+{
   if (var_message.type != PP_VARTYPE_STRING) {
     /* Only handle string messages */
     return;
@@ -319,10 +340,10 @@ void Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message) {
   } else if (strncmp(message, kGetStatusMethodId, strlen(kGetStatusMethodId)) == 0) {
     ppb_messaging_interface->PostMessage(instance, AllocateVarFromCStr(NaClStatus()));
   } else if (strncmp(message, kSetImageSizeMethodId, strlen(kSetImageSizeMethodId)) == 0) {
-    ppb_messaging_interface->PostMessage(instance, SetImageSize(GetInteger(message + strlen(kSetImageSizeMethodId) + 1)));
+    SetImageSize(GetInteger(message + strlen(kSetImageSizeMethodId) + 1));
   }
 
-  if (strcmp(message, kLoadImageMethodId) == 0) {
+  if (strncmp(message, kLoadImageMethodId, strlen(kLoadImageMethodId)) == 0) {
 #ifdef EMBEDDED_IMAGE_FILE
     LoadImage();
 #else
@@ -342,8 +363,10 @@ void Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message) {
  * @param[in] get_browser_interface Pointer to PPB_GetInterface
  * @return PP_OK on success, any other value on failure.
  */
-PP_EXPORT int32_t PPP_InitializeModule(PP_Module a_module_id,
-                                       PPB_GetInterface get_browser) {
+PP_EXPORT int32_t
+PPP_InitializeModule(PP_Module a_module_id,
+		     PPB_GetInterface get_browser)
+{
   module_id = a_module_id;
   ppb_var_interface = (struct PPB_Var*)(get_browser(PPB_VAR_INTERFACE));
   NaCl_InitializeModule(get_browser);
@@ -357,7 +380,9 @@ PP_EXPORT int32_t PPP_InitializeModule(PP_Module a_module_id,
  * @param[in] interface_name name of the interface
  * @return pointer to the interface
  */
-PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
+PP_EXPORT const void*
+PPP_GetInterface(const char* interface_name)
+{
   if (strcmp(interface_name, PPP_INSTANCE_INTERFACE) == 0) {
     static struct PPP_Instance instance_interface = {
       &Instance_DidCreate,
@@ -384,7 +409,9 @@ PP_EXPORT const void* PPP_GetInterface(const char* interface_name) {
 /**
  * Called before the plugin module is unloaded.
  */
-PP_EXPORT void PPP_ShutdownModule() {
+PP_EXPORT void
+PPP_ShutdownModule()
+{
   toQuit = 1;
   void *null;
   pthread_join(interpret_thread, &null);

@@ -1,22 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Naclsqueak!</title>
+  <title>Squeak on Native Client!</title>
 
   <script type="text/javascript">
     naclsqueakModule = null;  // Global application object.
     statusText = 'NO-STATUS';
+    embedded_image_file = false;
 
-    // When the NaCl module has loaded, hook up an event listener to handle
-    // messages coming from it via PPB_Messaging.PostMessage() (in C) or
-    // pp::Instance.PostMessage() (in C++), and indicate success.
-    function moduleDidLoad() {
-      naclsqueakModule = document.getElementById('naclsqueak');
-      naclsqueakModule.addEventListener('message', handleMessage, true);
-      paintInterval = setInterval('naclsqueakModule.postMessage("paint")', 5);
-      loadSqueakImage();
-      updateStatus('SUCCESS');
-    }
+    _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+ 
+    function base64_encode(input) {
+      var output = "";
+      var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+      var i = 0;
+
+      while (i < input.length) {
+
+        chr1 = input.charCodeAt(i++) & 0xFF;
+	chr2 = input.charCodeAt(i++) & 0xFF;
+	chr3 = input.charCodeAt(i++) & 0xFF;
+ 
+	enc1 = chr1 >> 2;
+	enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+  	enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+	enc4 = chr3 & 63;
+ 
+  	if (isNaN(chr2)) {
+	   enc3 = enc4 = 64;
+	} else if (isNaN(chr3)) {
+	   enc4 = 64;
+	}
+ 
+	output = output +
+	  _keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
+	  _keyStr.charAt(enc3) + _keyStr.charAt(enc4);
+      }
+ 
+      return output;
+   }
+
+
+   // When the NaCl module has loaded, hook up an event listener to handle
+   // messages coming from it via PPB_Messaging.PostMessage() (in C) or
+   // pp::Instance.PostMessage() (in C++), and indicate success.
+   function moduleDidLoad() {
+     naclsqueakModule = document.getElementById('naclsqueak');
+     naclsqueakModule.addEventListener('message', handleMessage, true);
+     paintInterval = setInterval('naclsqueakModule.postMessage("paint")', 20);
+     loadSqueakImage();
+     updateStatus('SUCCESS');
+   }
 
     // The 'message' event handler.  This handler is fired when the NaCl module
     // posts a message to the browser by calling PPB_Messaging.PostMessage()
@@ -26,14 +60,31 @@
     }
 
     function loadSqueakImage() {
-      naclsqueakModule.postMessage('loadImage');
+      if (embedded_image_file) {
+        naclsqueakModule.postMessage('loadImage');
+      } else {
+        var req = new XMLHttpRequest();
+        req.open('GET', 'Etoys.image', false);
+	req.overrideMimeType('text/plain; charset=x-user-defined');
+//	req.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+        req.send(null);
+        if (req.status == 200) {
+          naclsqueakModule.postMessage('setImageSize:' + (req.responseText.length.toString()));
+          current = 0;
+	  while (current < req.responseText.length) {
+            naclsqueakModule.postMessage('loadImage:' + base64_encode(req.responseText.substring(current, current + 3000)));
+	    current = Math.min(current + 3000, req.responseText.length);
+          }
+          req = null;
+        }
+      }
     }
 
     // If the page loads before the Native Client module loads, then set the
     // status message indicating that the module is still loading.  Otherwise,
     // do not change the status message.
     function pageDidLoad() {
-      if (naclsqueakmodule == null) {
+      if (naclsqueakModule == null) {
         updateStatus('LOADING...');
       } else {
         // It's possible that the Native Client module onload event fired
@@ -61,7 +112,7 @@
 </head>
 <body onload="pageDidLoad()">
 
-<h1>Native Client Module Naclsqueak</h1>
+<h1>Squeak on Native Client!</h1>
 <p>
   <!-- Load the published .nexe.  This includes the 'nacl' attribute which
   shows how to load multi-architecture modules.  Each entry in the "nexes"
@@ -87,7 +138,7 @@
 
     <embed name="nacl_module"
        id="naclsqueak"
-       width=640 height=480
+       width=800 height=600
        src="naclsqueak.nmf"
        type="application/x-nacl" />
   </div>

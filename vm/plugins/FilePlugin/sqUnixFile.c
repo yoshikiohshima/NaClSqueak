@@ -138,7 +138,6 @@ sqInt dir_Delete(char *pathString, sqInt pathStringLength)
 
 sqInt dir_Delimitor(void)
 {
-  trace();
   return DELIMITER;
 }
 
@@ -263,7 +262,6 @@ sqInt dir_Lookup(char *pathString, sqInt pathStringLength, sqInt index,
 
   return ENTRY_FOUND;
 #else
-  trace();
   return BAD_PATH;
 #endif
 }
