@@ -2,7 +2,7 @@
 #define UNIX 1
 #define ioMicroSecondClock ioMicroSeconds
 /* #define ioUtcWithOffset sqUnixUtcWithOffset */
-#define OS_TYPE "unix"
+#define OS_TYPE "NaCl"
 /* #undef DARWIN */
 /* #undef WORDS_BIGENDIAN */
 #define LSB_FIRST 1
