@@ -94,12 +94,13 @@ static int32_t screenWidth;
 static int32_t screenHeight;
 static int32_t screenStride;
 
-static int translateCode(int code)
+static int32_t translateCode(int code)
 {
   switch (code)
     {
+    case 8:		return 8;
+    case 127:		return 8;
 #if 0
-    case XK_Left:	return 28;
     case XK_Up:		return 30;
     case XK_Right:	return 29;
     case XK_Down:	return 31;
@@ -108,11 +109,12 @@ static int translateCode(int code)
     case XK_Next:	return 12;	/* page down */
     case XK_Home:	return  1;
     case XK_End:	return  4;
-
-    case XK_KP_Left:	return 28;
-    case XK_KP_Up:	return 30;
-    case XK_KP_Right:	return 29;
-    case XK_KP_Down:	return 31;
+#endif
+    case 37:		return 28;
+    case 38:		return 30;
+    case 39:		return 29;
+    case 40:		return 31;
+#if 0
     case XK_KP_Insert:	return  5;
     case XK_KP_Prior:	return 11;	/* page up */
     case XK_KP_Next:	return 12;	/* page down */
@@ -124,6 +126,24 @@ static int translateCode(int code)
   /*NOTREACHED*/
 }
 
+static int32_t
+oneUTF8(char *text)
+{
+  int32_t c = text[0];
+  if (0 <= c && c <= 0x7f)
+    return c;
+
+  if ((c & 0xE0) == 0xC0)
+    return ((c & 0x1F) << 6) + (text[1] & 0x3F);
+
+  if ((c & 0xF0) == 0xE0)
+    return ((c & 0x0F) << 12) + ((text[1] & 0x3F) << 6) + (text[2] & 0x3F);
+
+  if ((c & 0xF8) == 0xF0)
+    return ((c & 0x07) << 18) + ((text[1] & 0x3F) << 12) + ((text[2] & 0x3F) << 6) + (text[3] & 0x3F);
+
+  return 0;
+}
 
 static int nacl2sqButton(int button)
 {
@@ -148,12 +168,12 @@ static int nacl2sqModifier(uint32_t state)
     mods |= CtrlKeyBit;
   }
   if (state & PP_INPUTEVENT_MODIFIER_ALTKEY) {
-    mods |= CommandKeyBit;
-  }
-  if (state & PP_INPUTEVENT_MODIFIER_METAKEY) {
     mods |= OptionKeyBit;
   }
-  //  fprintf(stderr, "mods = %d\n", (int)mods);
+  if (state & PP_INPUTEVENT_MODIFIER_METAKEY) {
+    mods |= CommandKeyBit;
+  }
+  //fprintf(stderr, "mods = %d\n", (int)mods);
   return mods;
 }
 
@@ -171,13 +191,13 @@ static void
 noteMouseEventState(const PP_Resource evt)
 {
   noteMouseEventPosition(evt);
-  modifierState = event_->GetModifiers(evt);
+  modifierState = (event_->GetModifiers(evt)) & 0x1F;
 }
 
 static void
 noteKeyEventState(const PP_Resource evt)
 {
-  modifierState = event_->GetModifiers(evt);
+  modifierState = nacl2sqModifier(event_->GetModifiers(evt));
 }
 
 static PP_Bool
@@ -306,15 +326,14 @@ PP_Bool
 NaCl_HandleInputEvent(PP_Instance instance,
 		      const PP_Resource evt)
 {
-  uint32_t keyCode, modifiers;
+  int32_t keyCode, modifiers;
   PP_InputEvent_Type type = event_->GetType(evt);
   PP_InputEvent_MouseButton mouseButton;
   modifiers = event_->GetModifiers(evt);
   switch (type) {
   case PP_INPUTEVENT_TYPE_MOUSEDOWN:
-	//evt = mouseEvent_->create(instance, type, event_->GetTimeStamp(evt), event_->GetModifiers(evt),mouseEvent_->GetButton(evt),mouseEvent_->GetPosition(evt),mouseEvent_->GetClickCount(evt));
-	noteMouseEventState(evt);
-	mouseButton = mouseEvent_->GetButton(evt);
+    noteMouseEventState(evt);
+    mouseButton = mouseEvent_->GetButton(evt);
     switch (mouseButton) {
     case PP_INPUTEVENT_MOUSEBUTTON_NONE: case PP_INPUTEVENT_MOUSEBUTTON_LEFT: case PP_INPUTEVENT_MOUSEBUTTON_MIDDLE: case PP_INPUTEVENT_MOUSEBUTTON_RIGHT:
       buttonState |= nacl2sqButton(mouseButton);
@@ -323,9 +342,8 @@ NaCl_HandleInputEvent(PP_Instance instance,
     }
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_MOUSEUP:
-	//evt = mouseEvent_->create(instance, type, event_->GetTimeStamp(evt), event_->GetModifiers(evt),mouseEvent_->GetButton(evt),mouseEvent_->GetPosition(evt),mouseEvent_->GetClickCount(evt));
-	noteMouseEventState(evt);
-	mouseButton = mouseEvent_->GetButton(evt);
+    noteMouseEventState(evt);
+    mouseButton = mouseEvent_->GetButton(evt);
     switch (mouseButton) {
     case PP_INPUTEVENT_MOUSEBUTTON_NONE: case PP_INPUTEVENT_MOUSEBUTTON_LEFT: case PP_INPUTEVENT_MOUSEBUTTON_MIDDLE: case PP_INPUTEVENT_MOUSEBUTTON_RIGHT:
       buttonState &= ~nacl2sqButton(mouseButton);
@@ -334,27 +352,35 @@ NaCl_HandleInputEvent(PP_Instance instance,
     }
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_MOUSEMOVE:
-	//evt = mouseEvent_->create(instance, type, event_->GetTimeStamp(evt), event_->GetModifiers(evt),mouseEvent_->GetButton(evt),mouseEvent_->GetPosition(evt),mouseEvent_->GetClickCount(evt));
-	noteMouseEventState(evt);
+    noteMouseEventState(evt);
     recordMouseEvent();
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_KEYDOWN:
-	//keyboardEvent_->create(instance,type, event_->GetTimeStamp(evt), event_->GetModifiers(evt),keyboardEvent_->GetKeyCode(evt),keyboardEvent_->GetCharacterText(evt));
     noteKeyEventState(evt);
     keyCode = keyboardEvent_->GetKeyCode(evt);
-    fprintf(stderr, "down: %d, %d\n", keyCode, modifiers);
+    //fprintf(stderr, "down: %d, %d\n", keyCode, modifiers);
     recordKeyboardEvent(keyCode, EventKeyDown, modifierState, keyCode);
+    if ((keyCode = translateCode(keyCode)) > 0)
+      recordKeyboardEvent(keyCode, EventKeyChar, modifierState, keyCode);
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_CHAR:
-	noteKeyEventState(evt);
-	keyCode = keyboardEvent_->GetKeyCode(evt);
-	fprintf(stderr, "char: %d, %d\n", keyCode, modifiers);
+    {
+      char* text = CStrFromVar(keyboardEvent_->GetCharacterText(evt));
+      noteKeyEventState(evt);
+      keyCode = oneUTF8(text);
+      //Cmd-. does not seem to trigger this.  Perhaps the browser is filtering it.
+      if ((keyCode | (modifierState << 8)) == getInterruptKeycode()) {
+	setInterruptPending(true);
+	setInterruptCheckCounter(0);
+      } else {
 	recordKeyboardEvent(keyCode, EventKeyChar, modifierState, keyCode);
-	return PP_TRUE;
+      }
+    }
+    return PP_TRUE;
   case PP_INPUTEVENT_TYPE_KEYUP:
-	noteKeyEventState(evt);
-	keyCode = keyboardEvent_->GetKeyCode(evt);
-	fprintf(stderr, "up: %d, %d\n", keyCode, modifiers);
+    noteKeyEventState(evt);
+    keyCode = keyboardEvent_->GetKeyCode(evt);
+    //fprintf(stderr, "up: %d, %d\n", keyCode, modifiers);
     recordKeyboardEvent(keyCode, EventKeyUp, modifierState, keyCode);
     return PP_TRUE;
   case PP_INPUTEVENT_TYPE_UNDEFINED:

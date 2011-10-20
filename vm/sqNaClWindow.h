@@ -33,6 +33,7 @@ extern void Paint();
 void Log(char* message);
 char LogBuffer[1024];
 char *NaClStatus();
+char *CStrFromVar(struct PP_Var var);
 
 void NaCl_DidChangeView(PP_Instance instance,
 		       const struct PP_Rect* position,

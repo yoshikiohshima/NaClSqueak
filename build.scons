@@ -1,8 +1,11 @@
 #! -*- python -*-
 #
-# Copyright (c) 2011 The Native Client Authors. All rights reserved.
+# Copyright (c) 2011 Yoshiki Ohshima.   All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
+#Change this flag to compile the VM with embedded image file.  To make Etoys.c, use mkimage utility.
+embedded_image_file = False
 
 import make_nacl_env
 import os
@@ -13,9 +16,15 @@ nacl_env.Append(CPPPATH=['./vm', './Cross/vm', './src/vm', '.']+(map(str, Glob('
 
 nacl_env.Append(CFLAGS=['-DSQUEAK_BUILTIN_PLUGIN'])
 
-sources = ['naclsqueak.c', './vm/sqNaClWindow.c', './vm/sqUnixMain.c', './vm/sqNaClSound.c', './vm/sqNaClFile.c', './vm/sqUnixMemory.c', './vm/sqUnixExternalPrims.c', './vm/osExports.c', './Cross/vm/sqVirtualMachine.c', './Cross/vm/sqNamedPrims.c', 'gnu-interp.c']
+sources = ['naclsqueak.c', './vm/sqNaClWindow.c',
+           './vm/sqUnixMain.c', './vm/sqNaClSound.c',
+           './vm/sqNaClFile.c', './vm/sqUnixMemory.c',
+           './vm/sqUnixExternalPrims.c', './vm/osExports.c',
+           './Cross/vm/sqVirtualMachine.c', './Cross/vm/sqNamedPrims.c',
+           'gnu-interp.c']
 
-if ('-DEMBEDDED_IMAGE_FILE' in nacl_env['CFLAGS']):
+if (embedded_image_file):
+    nacl_env.Append(CFLAGS=['-DEMBEDDED_IMAGE_FILE'])
     sources += ['Etoys.c']
 
 for dir in Glob('vm/plugins/*'):
@@ -34,9 +43,9 @@ nacl_env.Append(BUILDERS = {'Gnuify' : gnuify})
 
 nacl_env.Gnuify('gnu-interp.c', 'src/vm/interp.c')
 
-def plugin(file):
-    sp = file.split('/')
-    return '/'.join(sp + [sp[-1]])
+#def plugin(file):
+#    sp = file.split('/')
+#    return '/'.join(sp + [sp[-1]])
 
 #nacl_env.Append(LIBS=map((lambda x: Library(plugin(str(x)), Glob(str(x) + '/*'))), Glob('vm/plugins/*')))
 #nacl_env.Append(LIBS=map((lambda x: Library(plugin(str(x)), Glob(str(x) + '/*'))), Glob('src/vm/intplugins/*')))

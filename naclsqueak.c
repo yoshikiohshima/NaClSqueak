@@ -73,7 +73,7 @@ GetInteger(char *start)
   return len;
 }
 
-static char*
+char*
 CStrFromVar(struct PP_Var var)
 {
   static char c_str[4096];
