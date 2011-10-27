@@ -12,14 +12,14 @@ import os
 
 nacl_env = make_nacl_env.NaClEnvironment()
 
-nacl_env.Append(CPPPATH=['./vm', './Cross/vm', './src/vm', '.']+(map(str, Glob('plugins/*'))))
+nacl_env.Append(CPPPATH=['nacl/vm', 'Cross/vm', 'nacl/src/vm', '.']+(map(str, Glob('Cross/plugins/*'))))
 
 nacl_env.Append(CFLAGS=['-DSQUEAK_BUILTIN_PLUGIN'])
 
-sources = ['naclsqueak.c', './vm/sqNaClWindow.c',
-           './vm/sqUnixMain.c', './vm/sqNaClSound.c',
-           './vm/sqNaClFile.c', './vm/sqUnixMemory.c',
-           './vm/sqUnixExternalPrims.c', './vm/osExports.c',
+sources = ['naclsqueak.c', './nacl/vm/sqNaClWindow.c',
+           './nacl/vm/sqUnixMain.c', './nacl/vm/sqNaClSound.c',
+           './nacl/vm/sqNaClFile.c', './nacl/vm/sqUnixMemory.c',
+           './nacl/vm/sqUnixExternalPrims.c', './nacl/vm/osExports.c',
            './Cross/vm/sqVirtualMachine.c', './Cross/vm/sqNamedPrims.c',
            'gnu-interp.c']
 
@@ -27,13 +27,13 @@ if (embedded_image_file):
     nacl_env.Append(CFLAGS=['-DEMBEDDED_IMAGE_FILE'])
     sources += ['Etoys.c']
 
-for dir in Glob('vm/plugins/*'):
+for dir in Glob('nacl/plugins/*'):
     sources += map(str, Glob(str(dir)+'/*.c'))
 
-for dir in Glob('src/vm/intplugins/*'):
+for dir in Glob('nacl/src/vm/intplugins/*'):
     sources += map(str, Glob(str(dir)+'/*.c'))
 
-for dir in ['plugins/JPEGReadWriter2Plugin', 'plugins/SecurityPlugin', 'plugins/SoundCodecPrims', 'plugins/SoundPlugin']:
+for dir in ['Cross/plugins/JPEGReadWriter2Plugin', 'Cross/plugins/SecurityPlugin', 'Cross/plugins/SoundCodecPrims', 'Cross/plugins/SoundPlugin']:
     sources += map(str, Glob(str(dir)+'/*.c'))
 
 nacl_env.AllNaClModules(sources, 'naclsqueak')
@@ -41,7 +41,7 @@ nacl_env.AllNaClModules(sources, 'naclsqueak')
 gnuify = Builder(action = 'awk -f gnuify < $SOURCE > $TARGET')
 nacl_env.Append(BUILDERS = {'Gnuify' : gnuify})
 
-nacl_env.Gnuify('gnu-interp.c', 'src/vm/interp.c')
+nacl_env.Gnuify('gnu-interp.c', 'nacl/src/vm/interp.c')
 
 #def plugin(file):
 #    sp = file.split('/')
