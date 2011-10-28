@@ -40,19 +40,16 @@
 #include "ppapi/c/ppp_instance.h"
 #include "ppapi/c/ppp_messaging.h"
 #include "ppapi/c/ppp_input_event.h"
-#include "sqNaClWindow.h"
 
-struct MessageInfo {
-  PP_Instance instance;
-  struct PP_Var message;
-};
+#include "sqNaClWindow.h"
+#include "ringBufferMessaging.h"
 
 static struct PPB_Messaging* ppb_messaging_interface = NULL;
 static struct PPB_Var* ppb_var_interface = NULL;
 static PP_Module module_id = 0;
 
 static const char* const kPaintMethodId = "paint";
-static const char* const kGetStatusMethodId = "getStatus";
+static const char* const kMessageId = "message";
 static const char* const kLoadImageMethodId = "loadImage";
 static const char* const kSetImageSizeMethodId = "setImageSize";
 static const char kMessageArgumentSeparator = ':';
@@ -147,6 +144,14 @@ AllocateVarFromCStr(const char* str)
 {
   if (ppb_var_interface != NULL)
     return ppb_var_interface->VarFromUtf8(module_id, str, strlen(str));
+  return PP_MakeUndefined();
+}
+
+static struct PP_Var
+AllocateVarFromSqStr(const char* str, int32_t size)
+{
+  if (ppb_var_interface != NULL)
+    return ppb_var_interface->VarFromUtf8(module_id, str, size);
   return PP_MakeUndefined();
 }
 
@@ -327,6 +332,14 @@ Instance_HandleDocumentLoad(PP_Instance instance,
 void
 Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message)
 {
+  struct PP_Var sqMessage = read_from_sq_to_browser(AllocateVarFromSqStr);
+  while (sqMessage.type != PP_VARTYPE_NULL) {
+    ppb_messaging_interface->PostMessage(instance, sqMessage);
+    ppb_var_interface->Release(sqMessage);
+    sqMessage = read_from_sq_to_browser(AllocateVarFromSqStr);
+  }
+  ppb_var_interface->Release(sqMessage);
+
   if (var_message.type != PP_VARTYPE_STRING) {
     /* Only handle string messages */
     return;
@@ -337,8 +350,8 @@ Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message)
     return;
   if (strncmp(message, kPaintMethodId, strlen(kPaintMethodId)) == 0) {
     Paint();
-  } else if (strncmp(message, kGetStatusMethodId, strlen(kGetStatusMethodId)) == 0) {
-    ppb_messaging_interface->PostMessage(instance, AllocateVarFromCStr(NaClStatus()));
+  } else if (strncmp(message, kMessageId, strlen(kMessageId)) == 0) {
+    //send_from_browser_to_sq(message+ strlen(kMessageId) + 1, strlen(message+ strlen(kMessageId) + 1));
   } else if (strncmp(message, kSetImageSizeMethodId, strlen(kSetImageSizeMethodId)) == 0) {
     SetImageSize(GetInteger(message + strlen(kSetImageSizeMethodId) + 1));
   }
@@ -371,6 +384,7 @@ PPP_InitializeModule(PP_Module a_module_id,
   ppb_var_interface = (struct PPB_Var*)(get_browser(PPB_VAR_INTERFACE));
   NaCl_InitializeModule(get_browser);
   ppb_messaging_interface = (struct PPB_Messaging*)(get_browser(PPB_MESSAGING_INTERFACE));
+  ring_buffer_initialize();
   return PP_OK;
 }
 

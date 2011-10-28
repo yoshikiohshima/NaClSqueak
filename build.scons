@@ -20,6 +20,7 @@ sources = ['naclsqueak.c', './nacl/vm/sqNaClWindow.c',
            './nacl/vm/sqUnixMain.c', './nacl/vm/sqNaClSound.c',
            './nacl/vm/sqNaClFile.c', './nacl/vm/sqUnixMemory.c',
            './nacl/vm/sqUnixExternalPrims.c', './nacl/vm/osExports.c',
+           './nacl/vm/ringBufferMessaging.c',
            './Cross/vm/sqVirtualMachine.c', './Cross/vm/sqNamedPrims.c',
            'gnu-interp.c']
 
