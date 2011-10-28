@@ -168,10 +168,10 @@ static int nacl2sqModifier(uint32_t state)
     mods |= CtrlKeyBit;
   }
   if (state & PP_INPUTEVENT_MODIFIER_ALTKEY) {
-    mods |= CommandKeyBit;
+    mods |= OptionKeyBit;
   }
   if (state & PP_INPUTEVENT_MODIFIER_METAKEY) {
-    mods |= OptionKeyBit;
+    mods |= CommandKeyBit;
   }
   //fprintf(stderr, "mods = %d\n", (int)mods);
   return mods;

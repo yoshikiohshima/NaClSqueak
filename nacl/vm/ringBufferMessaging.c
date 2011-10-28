@@ -27,7 +27,7 @@ static pthread_mutex_t b2s_mutex;
 void
 ring_buffer_initialize()
 {
-  s2b_capacity = 4*sizeof(int32_t);
+  s2b_capacity = 1024*sizeof(int32_t);
   s2b = malloc(s2b_capacity);
   tmp_buffer = malloc(s2b_capacity);
   s2b_free_start = 0;
