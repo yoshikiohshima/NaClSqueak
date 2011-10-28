@@ -136,7 +136,7 @@ read_from_browser_to_sq(sqInt (*newString)(sqInt))
   if (!err)
     return sqString;
 
-  return interpreterProxy->nilObject;
+  return interpreterProxy->nilObject();
 }
 
 static int
@@ -144,7 +144,6 @@ send_buffer(char *aString, int32_t size, struct messaging *m)
 {
   int free;
   int err = 0;
-  fprintf("send_buffer %s\n", aString);
   pthread_mutex_lock(&m->mutex);
 
   if ((CEIL4(size) + 4) > m->capacity) {
@@ -203,7 +202,7 @@ send_from_browser_to_sq(char *aString, int32_t size)
 }
 
 void
-set_signaler(sqInt (*func)())
+set_signaler(void (*func)())
 {
   signaler = func;
 }

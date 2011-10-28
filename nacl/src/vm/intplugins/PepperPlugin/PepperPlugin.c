@@ -1,4 +1,4 @@
-/* Automatically generated from Squeak on 28 October 2011 1:52:05 am 
+/* Automatically generated from Squeak on 28 October 2011 10:09:02 am 
    by VMMaker 4.4.7
  */
 
@@ -27,6 +27,7 @@
 // was #undef EXPORT(returnType) but screws NorCroft cc
 #define EXPORT(returnType) static returnType
 #endif
+#include "PepperPlugin.h"
 
 #include "sqMemoryAccess.h"
 
@@ -49,7 +50,7 @@ EXPORT(sqInt) postMessage(void);
 EXPORT(sqInt) setInterpreter(struct VirtualMachine*anInterpreter);
 EXPORT(sqInt) setMessagingSemaphoreIndex(void);
 #pragma export off
-static sqInt signalMessagingSemaphore(void);
+static void sqSignalMessagingSemaphore(void);
 /*** Variables ***/
 
 #ifdef SQUEAK_BUILTIN_PLUGIN
@@ -92,7 +93,8 @@ EXPORT(sqInt) handleMessage(void) {
 
 	val = read_from_browser_to_sq(newString);
 	interpreterProxy->pop((interpreterProxy->methodArgumentCount()) + 1);
-	push(val);
+	interpreterProxy->push(val);
+	return 1;
 }
 
 static sqInt msg(char *s) {
@@ -119,6 +121,7 @@ EXPORT(sqInt) postMessage(void) {
 	if ((interpreterProxy->methodArgumentCount()) == 1) {
 		interpreterProxy->pop(1);
 	}
+	return 1;
 }
 
 
@@ -144,13 +147,14 @@ EXPORT(sqInt) setMessagingSemaphoreIndex(void) {
 		return null;
 	}
 	messagingSema = semaIndex;
-	set_signaler(signalMessagingSemaphore);
+	set_signaler(sqSignalMessagingSemaphore);
 	if ((interpreterProxy->methodArgumentCount()) == 1) {
 		interpreterProxy->pop(1);
 	}
+	return 1;
 }
 
-static sqInt signalMessagingSemaphore(void) {
+static void sqSignalMessagingSemaphore(void) {
 	if (messagingSema > 0) {
 		interpreterProxy->signalSemaphoreWithIndex(messagingSema);
 	}

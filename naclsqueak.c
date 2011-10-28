@@ -52,6 +52,7 @@ static const char* const kPaintMethodId = "paint";
 static const char* const kMessageId = "message";
 static const char* const kLoadImageMethodId = "loadImage";
 static const char* const kSetImageSizeMethodId = "setImageSize";
+static const char* const kGetStatusMethodId = "getStatus";
 static const char kMessageArgumentSeparator = ':';
 static const char kNullTerminator = '\0';
 
@@ -355,6 +356,8 @@ Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message)
     signalMessagingSemaphore();
   } else if (strncmp(message, kSetImageSizeMethodId, strlen(kSetImageSizeMethodId)) == 0) {
     SetImageSize(GetInteger(message + strlen(kSetImageSizeMethodId) + 1));
+  } else if (strncmp(message, kGetStatusMethodId, strlen(kGetStatusMethodId)) == 0) {
+    ppb_messaging_interface->PostMessage(instance, AllocateVarFromCStr(NaClStatus()));
   }
 
   if (strncmp(message, kLoadImageMethodId, strlen(kLoadImageMethodId)) == 0) {
