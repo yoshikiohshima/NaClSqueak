@@ -222,7 +222,7 @@ getDesc()
 static void 
 DestroyContext(PP_Instance instance)
 {
-  Log(isContextValid() ? "destroy good\n" : "destroy empty\n");
+  //fprintf(stderr, "%s\n", (isContextValid() ? "destroy good\n" : "destroy empty\n"));
   if (isContextValid()) {
     core_->ReleaseResource(gc);
     gc = 0;
@@ -241,16 +241,14 @@ CreateContext(PP_Instance instance, const struct PP_Size* size)
   if (isContextValid())
     return;
 
-  Log("making gc\n");
-  sprintf(LogBuffer, "size: %d, %d\n", (int)size->width, (int)size->height);
-  Log(LogBuffer);
+  fprintf(stderr, "size: %d, %d\n", (int)size->width, (int)size->height);
   pthread_mutex_lock(&image_mutex);
   gc = graphics_2d_->Create(instance, size, false);
   if (!isContextValid() /*graphics_2d_->IsGraphics2D(gc)*/) {
-    Log("failed to create gc\n");
+    fprintf(stderr, "failed to create gc\n");
   }
   if (!instance_->BindGraphics(instance, gc)) {
-    Log("couldn't bind gc\n");
+    fprintf(stderr, "couldn't bind gc\n");
   }
   image = image_data_->Create(instance, PP_IMAGEDATAFORMAT_BGRA_PREMUL,
 				size,
@@ -316,7 +314,7 @@ NaCl_DidChangeView(PP_Instance instance,
   if (position->size.width == screenWidth &&
       position->size.height == screenHeight)
     return;  // Size didn't change, no need to update anything.
-  Log("change view\n");
+  fprintf(stderr, "change view\n");
   DestroyContext(instance);
   CreateContext(instance, &position->size);
   event_->RequestInputEvents(instance, PP_INPUTEVENT_CLASS_MOUSE | PP_INPUTEVENT_CLASS_KEYBOARD);

@@ -192,7 +192,7 @@ LoadImage(char* buf)
   pthread_create(&interpret_thread, NULL, runInterpret, NULL);
 #else
   image_file_index = decode((char*)buf, strlen(buf), (char*)image_file_buffer, image_file_index);
-  if ((image_file_index % 120000) == 0) {
+  if ((image_file_index % 480000) == 0) {
     fprintf(stderr, "file index %d\n", (int)image_file_index);
   }
   if (image_file_index >= image_file_size) {

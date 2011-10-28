@@ -1376,7 +1376,6 @@ void imgInit(void)
   sqImageFile f= nacl_fopen("foo", "r");
   readImageFromFileHeapSize(f, (DefaultHeapSize * 1024 * 1024) + image_file_size);
   sqImageFileClose(f);
-  Log("imgInit end\n");
 #endif  
 }
 

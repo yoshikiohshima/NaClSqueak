@@ -52,12 +52,12 @@
      updateStatus('SUCCESS');
    }
 
-    // The 'message' event handler.  This handler is fired when the NaCl module
-    // posts a message to the browser by calling PPB_Messaging.PostMessage()
-    // (in C) or pp::Instance.PostMessage() (in C++).  This implementation
-    // simply displays the content of the message in an alert panel.
     function handleMessage(message_event) {
-      updateStatus(message_event.data);
+      if (message_event.data.match(/^heading:/)) {
+        updateStatus(message_event.data.substring(8, message_event.data.length));
+      } else {
+        alert(message_eent.data)
+      }
     }
 
     function loadSqueakImage() {
@@ -122,6 +122,7 @@
         statusField.innerHTML = statusText;
       }
     }
+
   </script>
 </head>
 <body onload="pageDidLoad()">
@@ -158,19 +159,19 @@
   </div>
 </p>
 
-<h2>Status</h2>
+The Car's heading can be changed here.
 <form name="helloForm"
       action=""
       method="get"
       >
-  <input type="text" id="inputBox" name="inputBox" value="Hello Squeak!" /><p>
-  <input type="button" value="send a message to Squeak" onclick="postFromButton()" /><p>
-  <input type="button" value="GetStatus()" onclick="getSqueakStatus()">
+  <input type="text" id="inputBox" name="inputBox" value="2" />
+  <input type="button" id="headingSubmit" value="Send to Squeak" onclick="postFromButton()" /><p>
+The Wheel's heading is shown here.
 </form>
 	<table>
 		<tr>
-			<td style="width: 600px; height: 200px;">
-				<pre id="status_field" style="width: 100%; height: 100%; overflow:scroll;">NO-STATUS</pre>
+			<td style="width: 200px; height: 50px;">
+				<pre id="status_field">NO-STATUS</pre>
 			</td>
 		</tr>
 	</table></body>
