@@ -13,6 +13,7 @@ import os
 nacl_env = make_nacl_env.NaClEnvironment()
 
 nacl_env.Append(CPPPATH=['nacl/vm', 'Cross/vm', 'nacl/src/vm', '.']+(map(str, Glob('Cross/plugins/*'))))
+nacl_env.Append(CPPPATH=['nacl/plugins/PepperPlugin'])
 
 nacl_env.Append(CFLAGS=['-DSQUEAK_BUILTIN_PLUGIN'])
 

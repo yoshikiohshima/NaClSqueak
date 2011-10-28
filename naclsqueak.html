@@ -67,7 +67,7 @@
         var req = new XMLHttpRequest();
         req.open('GET', 'Etoys.image', false);
 	req.overrideMimeType('text/plain; charset=x-user-defined');
-//	req.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
+	req.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
         req.send(null);
         if (req.status == 200) {
           naclsqueakModule.postMessage('setImageSize:' + (req.responseText.length.toString()));
