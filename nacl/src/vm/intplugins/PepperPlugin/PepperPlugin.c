@@ -1,4 +1,4 @@
-/* Automatically generated from Squeak on 27 October 2011 11:49:38 pm 
+/* Automatically generated from Squeak on 28 October 2011 1:52:05 am 
    by VMMaker 4.4.7
  */
 
@@ -27,7 +27,6 @@
 // was #undef EXPORT(returnType) but screws NorCroft cc
 #define EXPORT(returnType) static returnType
 #endif
-#include "PepperPlugin.h"
 
 #include "sqMemoryAccess.h"
 
@@ -40,22 +39,29 @@ static VirtualMachine * getInterpreter(void);
 EXPORT(const char*) getModuleName(void);
 #pragma export off
 static sqInt halt(void);
+#pragma export on
+EXPORT(sqInt) handleMessage(void);
+#pragma export off
 static sqInt msg(char *s);
+static sqInt newString(sqInt size);
 #pragma export on
 EXPORT(sqInt) postMessage(void);
 EXPORT(sqInt) setInterpreter(struct VirtualMachine*anInterpreter);
+EXPORT(sqInt) setMessagingSemaphoreIndex(void);
 #pragma export off
+static sqInt signalMessagingSemaphore(void);
 /*** Variables ***/
 
 #ifdef SQUEAK_BUILTIN_PLUGIN
 extern
 #endif
 struct VirtualMachine* interpreterProxy;
+static sqInt messagingSema;
 static const char *moduleName =
 #ifdef SQUEAK_BUILTIN_PLUGIN
-	"PepperPlugin 27 October 2011 (i)"
+	"PepperPlugin 28 October 2011 (i)"
 #else
-	"PepperPlugin 27 October 2011 (e)"
+	"PepperPlugin 28 October 2011 (e)"
 #endif
 ;
 
@@ -81,8 +87,20 @@ static sqInt halt(void) {
 	;
 }
 
+EXPORT(sqInt) handleMessage(void) {
+    sqInt val;
+
+	val = read_from_browser_to_sq(newString);
+	interpreterProxy->pop((interpreterProxy->methodArgumentCount()) + 1);
+	push(val);
+}
+
 static sqInt msg(char *s) {
 	fprintf(stderr, "\n%s: %s", moduleName, s);
+}
+
+static sqInt newString(sqInt size) {
+	return interpreterProxy->instantiateClassindexableSize(interpreterProxy->classByteArray(), size);
 }
 
 EXPORT(sqInt) postMessage(void) {
@@ -98,6 +116,9 @@ EXPORT(sqInt) postMessage(void) {
 	sqStr = interpreterProxy->firstIndexableField(sqOop);
 	stSize = interpreterProxy->stSizeOf(sqOop);
 	send_from_sq_to_browser(sqStr, stSize);
+	if ((interpreterProxy->methodArgumentCount()) == 1) {
+		interpreterProxy->pop(1);
+	}
 }
 
 
@@ -115,14 +136,36 @@ EXPORT(sqInt) setInterpreter(struct VirtualMachine*anInterpreter) {
 	return ok;
 }
 
+EXPORT(sqInt) setMessagingSemaphoreIndex(void) {
+    sqInt semaIndex;
+
+	semaIndex = interpreterProxy->stackIntegerValue(0);
+	if (interpreterProxy->failed()) {
+		return null;
+	}
+	messagingSema = semaIndex;
+	set_signaler(signalMessagingSemaphore);
+	if ((interpreterProxy->methodArgumentCount()) == 1) {
+		interpreterProxy->pop(1);
+	}
+}
+
+static sqInt signalMessagingSemaphore(void) {
+	if (messagingSema > 0) {
+		interpreterProxy->signalSemaphoreWithIndex(messagingSema);
+	}
+}
+
 
 #ifdef SQUEAK_BUILTIN_PLUGIN
 
 
 void* PepperPlugin_exports[][3] = {
-	{"PepperPlugin", "postMessage", (void*)postMessage},
+	{"PepperPlugin", "setMessagingSemaphoreIndex", (void*)setMessagingSemaphoreIndex},
 	{"PepperPlugin", "getModuleName", (void*)getModuleName},
 	{"PepperPlugin", "setInterpreter", (void*)setInterpreter},
+	{"PepperPlugin", "postMessage", (void*)postMessage},
+	{"PepperPlugin", "handleMessage", (void*)handleMessage},
 	{NULL, NULL, NULL}
 };
 

@@ -351,7 +351,8 @@ Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message)
   if (strncmp(message, kPaintMethodId, strlen(kPaintMethodId)) == 0) {
     Paint();
   } else if (strncmp(message, kMessageId, strlen(kMessageId)) == 0) {
-    //send_from_browser_to_sq(message+ strlen(kMessageId) + 1, strlen(message+ strlen(kMessageId) + 1));
+    send_from_browser_to_sq(message+ strlen(kMessageId) + 1, strlen(message+ strlen(kMessageId) + 1));
+    signalMessagingSemaphore();
   } else if (strncmp(message, kSetImageSizeMethodId, strlen(kSetImageSizeMethodId)) == 0) {
     SetImageSize(GetInteger(message + strlen(kSetImageSizeMethodId) + 1));
   }

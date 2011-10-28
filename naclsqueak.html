@@ -96,6 +96,11 @@
       }
     }
 
+    function postFromButton() {
+      var inputBox = document.forms.helloForm.inputBox;
+      naclSqueakModule.postMessage('message:' + inputBox.value);
+    }
+
     // Set the global status message.  If the element with id 'statusField'
     // exists, then set its HTML to the status message as well.
     // opt_message The message test.  If this is null or undefined, then
@@ -147,5 +152,12 @@
 
 <h2>Status</h2>
 <div id="status_field">NO-STATUS</div>
+<form name="helloForm"
+      action=""
+      method="get"
+      onsubmit="return reverseText()">
+  <input type="text" id="inputBox" name="inputBox" value="Hello Squeak!" /><p>
+  <input type="button" value="send a message to Squeak" onclick="postFromButton()" />
+</form>
 </body>
 </html>

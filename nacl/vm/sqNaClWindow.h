@@ -15,7 +15,7 @@
 #include <ppapi/c/ppb_core.h>
 #include <ppapi/c/pp_input_event.h>
 #include <ppapi/c/pp_completion_callback.h>
-#include <ppapi/c/pp_resource.h>
+#include <ppapi/c/pp_resource.h>
 
 
 extern pthread_mutex_t image_mutex;
