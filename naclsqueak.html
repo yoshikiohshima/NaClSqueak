@@ -7,6 +7,7 @@
     naclsqueakModule = null;  // Global application object.
     statusText = 'NO-STATUS';
     embedded_image_file = false;
+    req = null;
 
     _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
  
@@ -60,24 +61,51 @@
       }
     }
 
+    // progress on transfers from the server to the client (downloads)  
+    function updateProgress(evt) {  
+      if (evt.lengthComputable) {  
+        var percentComplete = Math.round((evt.loaded / evt.total) * 100.0);
+        updateStatus(percentComplete.toString());
+      } else {  
+       // Unable to compute progress information since the total size is unknown  
+      }  
+    }
+  
+    function transferComplete(evt) {
+      loadSqueakImage2();
+    }
+  
+    function transferFailed(evt) {
+      alert("An error occurred while transferring the file.");  
+    }
+  
+    function transferCanceled(evt) {
+      alert("The transfer has been canceled by the user.");  
+    }
+
+    function loadSqueakImage2() {
+      naclsqueakModule.postMessage('setImageSize:' + (req.responseText.length.toString()));
+      current = 0;
+      while (current < req.responseText.length) {
+        naclsqueakModule.postMessage('loadImage:' + base64_encode(req.responseText.substring(current, current + 3000)));
+	current = Math.min(current + 3000, req.responseText.length);
+      }
+      req = null;
+   }
+
     function loadSqueakImage() {
       if (embedded_image_file) {
         naclsqueakModule.postMessage('loadImage');
       } else {
-        var req = new XMLHttpRequest();
-        req.open('GET', 'Etoys.image', false);
+        req = new XMLHttpRequest();
+	req.addEventListener("progress", updateProgress, false);  
+	req.addEventListener("load", transferComplete, false);  
+	req.addEventListener("error", transferFailed, false);  
+	req.addEventListener("abort", transferCanceled, false);  
+        req.open('GET', 'Etoys.image', true);
 	req.overrideMimeType('text/plain; charset=x-user-defined');
 	req.setRequestHeader("If-Modified-Since", "Sun, 23 Oct 2011 00:00:00 GMT");
         req.send(null);
-        if (req.status == 200) {
-          naclsqueakModule.postMessage('setImageSize:' + (req.responseText.length.toString()));
-          current = 0;
-	  while (current < req.responseText.length) {
-            naclsqueakModule.postMessage('loadImage:' + base64_encode(req.responseText.substring(current, current + 3000)));
-	    current = Math.min(current + 3000, req.responseText.length);
-          }
-          req = null;
-        }
       }
     }
 
