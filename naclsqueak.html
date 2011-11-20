@@ -104,7 +104,7 @@
 	req.addEventListener("abort", transferCanceled, false);  
         req.open('GET', 'Etoys.image', true);
 	req.overrideMimeType('text/plain; charset=x-user-defined');
-	req.setRequestHeader("If-Modified-Since", "Sun, 23 Oct 2011 00:00:00 GMT");
+//	req.setRequestHeader("If-Modified-Since", "Sun, 23 Oct 2011 00:00:00 GMT");
         req.send(null);
       }
     }
