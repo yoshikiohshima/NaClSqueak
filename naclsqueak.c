@@ -341,6 +341,8 @@ Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message)
   }
   ppb_var_interface->Release(sqMessage);
 
+  pthread_cond_signal(&interpret_event_cond);
+
   if (var_message.type != PP_VARTYPE_STRING) {
     /* Only handle string messages */
     return;

@@ -85,6 +85,8 @@ static PP_Resource gc = 0;
 static PP_Resource image = 0;
 pthread_mutex_t image_mutex;
 pthread_t interpret_thread;
+pthread_mutex_t interpret_event_mutex;
+pthread_cond_t interpret_event_cond =  PTHREAD_COND_INITIALIZER;
 int32_t flush_pending;
 int32_t toQuit = 0;
 
@@ -404,6 +406,7 @@ NaCl_InitializeModule(PPB_GetInterface get_browser_interface)
   graphics_2d_ = (const struct PPB_Graphics2D*) get_browser_interface(PPB_GRAPHICS_2D_INTERFACE);
   image_data_ = (const struct PPB_ImageData*) get_browser_interface(PPB_IMAGEDATA_INTERFACE);
   pthread_mutex_init(&image_mutex, NULL);
+  pthread_mutex_init(&interpret_event_mutex, NULL);
 }
 
 static int handleEvents(void)
@@ -478,10 +481,27 @@ static sqInt display_ioBeep(void)
 
 static sqInt display_ioRelinquishProcessorForMicroseconds(sqInt microSeconds)
 {
-  /* aioSleep(handleEvents() ? 0 : microSeconds); */
+  struct timespec timespec;
+  struct timeval now;
+  int ret;
+
+  gettimeofday(&now, 0);
+  now.tv_usec += microSeconds;
+  if (now.tv_usec >= 1000000) {
+    now.tv_usec -= 1000000;
+    now.tv_sec += 1;
+  }
+
+  timespec.tv_sec = now.tv_sec;
+  timespec.tv_nsec = now.tv_usec * 1000;
+
+  //  pthread_mutex_lock(&interpret_event_mutex);
+  //  ret = pthread_cond_timedwait(&interpret_event_cond, &interpret_event_mutex, &timespec);
+  //  pthread_mutex_unlock(&interpret_event_mutex);
+
   return 0;
 }
-
+  
 static sqInt display_ioProcessEvents(void)
 {
   handleEvents();
