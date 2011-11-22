@@ -495,9 +495,9 @@ static sqInt display_ioRelinquishProcessorForMicroseconds(sqInt microSeconds)
   timespec.tv_sec = now.tv_sec;
   timespec.tv_nsec = now.tv_usec * 1000;
 
-  //  pthread_mutex_lock(&interpret_event_mutex);
-  //  ret = pthread_cond_timedwait(&interpret_event_cond, &interpret_event_mutex, &timespec);
-  //  pthread_mutex_unlock(&interpret_event_mutex);
+  pthread_mutex_lock(&interpret_event_mutex);
+  ret = pthread_cond_timedwait(&interpret_event_cond, &interpret_event_mutex, &timespec);
+  pthread_mutex_unlock(&interpret_event_mutex);
 
   return 0;
 }
