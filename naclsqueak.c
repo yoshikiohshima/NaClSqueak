@@ -293,6 +293,7 @@ static PP_Bool
 InputEvent_HandleInputEvent(PP_Instance instance,
 			    const PP_Resource evt)
 {
+  pthread_cond_signal(&interpret_event_cond);
   return NaCl_HandleInputEvent(instance, evt);
 }
 
