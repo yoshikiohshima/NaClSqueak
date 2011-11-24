@@ -23,7 +23,7 @@ static char *tmp_buffer = NULL;
 
 #define CEIL4(x) ((x)%4==0 ? x : ((x) + 4) & ~3)
 
-static sqInt (*signaler)() = NULL;
+static void (*signaler)() = NULL;
 
 void
 ring_buffer_initialize()
@@ -140,6 +140,38 @@ read_from_browser_to_sq(sqInt (*newString)(sqInt))
 }
 
 static int
+resize_buffer(struct messaging *m, int32_t size)
+{
+  int32_t new_capacity;
+  int32_t *new_buffer;
+  int32_t new_start;
+  int32_t new_end;
+
+  new_capacity = (m->capacity + CEIL4(size) + 4) * 2;
+  new_buffer = malloc(new_capacity);
+  if (new_buffer == NULL) {
+    return 1;
+  }
+  if (m->free_end > m->free_start) {
+    memcpy(new_buffer, &m->buffer[m->free_end/4], m->capacity - m->free_end);
+    memcpy(&new_buffer[(m->capacity - m->free_end)/4], m->buffer, m->free_start);
+    new_start = m->capacity - (m->free_end - m->free_start);
+  } else {
+    memcpy(new_buffer, &m->buffer[m->free_end/4], m->free_start - m->free_end);
+    new_start = m->free_start - m->free_end;
+  }
+  new_end = 0;
+  m->capacity = new_capacity;
+  free(m->buffer);
+  m->buffer = new_buffer;
+  m->free_start = new_start;
+  m->free_end = new_end;
+  m->is_full = 0;
+
+  return 0;
+}
+ 
+static int
 send_buffer(char *aString, int32_t size, struct messaging *m)
 {
   int free;
@@ -147,15 +179,13 @@ send_buffer(char *aString, int32_t size, struct messaging *m)
   pthread_mutex_lock(&m->mutex);
 
   if ((CEIL4(size) + 4) > m->capacity) {
-    printf("just too big\n");
-    err = 1;
+    err = resize_buffer(m, size);
   }
   
   free = m->is_full
     ? 0 : (m->free_end - m->free_start + (m->free_start >= m->free_end ? m->capacity : 0));
   if ((CEIL4(size) + 4) > free) {
-    printf("overflow\n");
-    err = 2;
+    err = resize_buffer(m, size);
   }
 
   if (!err) {
