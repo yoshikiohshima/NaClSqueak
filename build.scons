@@ -7,10 +7,13 @@
 #Change this flag to compile the VM with embedded image file.  To make Etoys.c, use mkimage utility.
 embedded_image_file = False
 
+
 import make_nacl_env
 import os
 
-nacl_env = make_nacl_env.NaClEnvironment()
+nacl_env = make_nacl_env.NaClEnvironment(
+    nacl_platform=os.getenv('NACL_TARGET_PLATFORM'),
+    install_subdir='naclsqueak', lib_prefix='..')
 
 nacl_env.Append(CPPPATH=['nacl/vm', 'Cross/vm', 'nacl/src/vm', '.']+(map(str, Glob('Cross/plugins/*'))))
 nacl_env.Append(CPPPATH=['nacl/plugins/PepperPlugin'])
@@ -44,6 +47,19 @@ gnuify = Builder(action = 'awk -f gnuify < $SOURCE > $TARGET')
 nacl_env.Append(BUILDERS = {'Gnuify' : gnuify})
 
 nacl_env.Gnuify('gnu-interp.c', 'nacl/src/vm/interp.c')
+
+opt_nexes, dbg_nexes = nacl_env.AllNaClModules(sources, 'naclsqueak')
+
+app_files = [
+    'hello_world_c.html',
+    'hello_world_c.nmf',
+    ]
+
+install_nexes = nacl_env.NaClStrippedInstall(dir=nacl_env['NACL_INSTALL_ROOT'],
+                                             source=opt_nexes)
+install_app = nacl_env.Install(dir=nacl_env['NACL_INSTALL_ROOT'],
+                               source=app_files)
+nacl_env.Alias('install', source=install_app + install_nexes)
 
 #def plugin(file):
 #    sp = file.split('/')

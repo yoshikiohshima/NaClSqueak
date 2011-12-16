@@ -69,6 +69,7 @@
 
 #ifdef NACL
 #include "sqNaClWindow.h"
+#define signal(a, b)
 #endif
 
 #undef	DEBUG_MODULES
