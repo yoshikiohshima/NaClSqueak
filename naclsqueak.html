@@ -94,6 +94,7 @@
    }
 
     function loadSqueakImage() {
+      naclsqueakModule.postMessage('setHeapSize:' + (15*1024*1024));
       if (embedded_image_file) {
         naclsqueakModule.postMessage('loadImage');
       } else {

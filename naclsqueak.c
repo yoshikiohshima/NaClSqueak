@@ -52,6 +52,7 @@ static const char* const kPaintMethodId = "paint";
 static const char* const kMessageId = "message";
 static const char* const kLoadImageMethodId = "loadImage";
 static const char* const kSetImageSizeMethodId = "setImageSize";
+static const char* const kSetHeapSizeMethodId = "setHeapSize";
 static const char* const kGetStatusMethodId = "getStatus";
 static const char kMessageArgumentSeparator = ':';
 static const char kNullTerminator = '\0';
@@ -176,6 +177,14 @@ SetImageSize(int32_t size)
   }
   image_file_index = 0;
   return PP_MakeInt32(image_file_size);
+}
+
+struct PP_Var
+SetHeapSize(int32_t size)
+{
+  fprintf(stderr, "set heap size %d\n", (int)size);
+  setExtraMemory(size);
+  return PP_MakeInt32(size);
 }
 
 struct PP_Var
@@ -359,6 +368,8 @@ Messaging_HandleMessage(PP_Instance instance, struct PP_Var var_message)
     signalMessagingSemaphore();
   } else if (strncmp(message, kSetImageSizeMethodId, strlen(kSetImageSizeMethodId)) == 0) {
     SetImageSize(GetInteger(message + strlen(kSetImageSizeMethodId) + 1));
+  } else if (strncmp(message, kSetHeapSizeMethodId, strlen(kSetHeapSizeMethodId)) == 0) {
+    SetHeapSize(GetInteger(message + strlen(kSetHeapSizeMethodId) + 1));
   } else if (strncmp(message, kGetStatusMethodId, strlen(kGetStatusMethodId)) == 0) {
     ppb_messaging_interface->PostMessage(instance, AllocateVarFromCStr(NaClStatus()));
   }

@@ -45,3 +45,5 @@ PP_Bool NaCl_HandleInputEvent(PP_Instance instance,
 
 void NaCl_InitializeModule(PPB_GetInterface get_browser_interface);
 
+void setExtraMemory(int32_t size);
+

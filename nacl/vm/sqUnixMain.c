@@ -1332,6 +1332,13 @@ static void imageNotFound(char *imageName)
   exit(1);
 }
 
+#ifdef NACL
+void
+setExtraMemory(int32_t size)
+{
+  extraMemory = size;
+}
+#endif
 
 void imgInit(void)
 {
@@ -1375,7 +1382,10 @@ void imgInit(void)
     }
 #else
   sqImageFile f= nacl_fopen("foo", "r");
-  readImageFromFileHeapSize(f, (DefaultHeapSize * 1024 * 1024) + image_file_size);
+  if (extraMemory == 0) {
+    extraMemory = DefaultHeapSize * 1024 * 1024;
+  }
+  readImageFromFileHeapSize(f, extraMemory + image_file_size);
   sqImageFileClose(f);
 #endif  
 }
