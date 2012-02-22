@@ -51,8 +51,8 @@ nacl_env.Gnuify('gnu-interp.c', 'nacl/src/vm/interp.c')
 opt_nexes, dbg_nexes = nacl_env.AllNaClModules(sources, 'naclsqueak')
 
 app_files = [
-    'hello_world_c.html',
-    'hello_world_c.nmf',
+    'naclsqueak_c.html',
+    'naclsqueak.nmf',
     ]
 
 install_nexes = nacl_env.NaClStrippedInstall(dir=nacl_env['NACL_INSTALL_ROOT'],

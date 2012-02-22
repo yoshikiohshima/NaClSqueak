@@ -68,7 +68,7 @@ read_from_sq_to_browser(struct PP_Var (*func)(const char* str, int32_t size))
     first_part_size = (size < s2b.capacity - s2b.free_end)
       ? size : s2b.capacity - s2b.free_end;
     second_part_size = size - first_part_size > 0 ? size - first_part_size : 0;
-    
+
     memcpy(tmp_buffer, &s2b.buffer[s2b.free_end/4], size);
     s2b.free_end += CEIL4(first_part_size);
     if (second_part_size > 0) {
@@ -167,6 +167,13 @@ resize_buffer(struct messaging *m, int32_t size)
   m->free_start = new_start;
   m->free_end = new_end;
   m->is_full = 0;
+
+  if (m == &s2b) {
+    if (!tmp_buffer) {
+      free(tmp_buffer);
+    }
+    tmp_buffer = malloc(s2b.capacity);
+  }
 
   return 0;
 }
